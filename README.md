@@ -40,7 +40,7 @@ Trying to collect ecs logs... ok
 Trying to get docker inspect outputs of the containers... ok
 Trying to collect docker logs... Trying to pack gathered info... ok
 ```
-* running with debug mode
+* running with debug mode ( Please note this will restart Docker and ECS Agent to take effect)
 ```
 # bash ecs-logs-collector.sh --mode=debug
 Trying to check if it's running as root... ok
