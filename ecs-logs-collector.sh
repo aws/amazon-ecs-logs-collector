@@ -370,7 +370,7 @@ get_docker_info()
     mkdir -p ${info_system}/docker
 
     docker info > ${info_system}/docker/docker-info.txt 2>&1
-    docker ps -a > ${info_system}/docker/docker-ps.txt 2>&1
+    docker ps --all --no-trunc > ${info_system}/docker/docker-ps.txt 2>&1
     docker images > ${info_system}/docker/docker-images.txt 2>&1
     docker version > ${info_system}/docker/docker-version.txt 2>&1
 
