@@ -10,7 +10,7 @@ Below are the functions:
 * Collect Docker Logs
 * Collect ECS agent Logs
 * Enable Debug Mode for Docker and ECS Agent ( Only availabe for Amazon Linux )
-* Create a tar zip file in the same folder as the srcript
+* Create a tar zip file in the same folder as the script
 
 ## Usage
 
