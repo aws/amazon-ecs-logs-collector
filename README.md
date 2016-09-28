@@ -16,15 +16,15 @@ Below are the functions:
 
 * It needs to be run as root user
 ```
-wget https://raw.githubusercontent.com/awslabs/ecs-logs-collector/master/ecs-logs-collector.sh
-bash ecs-logs-collector.sh
+# wget https://raw.githubusercontent.com/awslabs/ecs-logs-collector/master/ecs-logs-collector.sh
+# bash ecs-logs-collector.sh
 ```
 
 
 ### Example usage and output:
 * running in normal mode
 ```
-bash ecs-logs-collector.sh
+# bash ecs-logs-collector.sh
 Trying to check if it's running as root... ok
 Trying to check disk space usage... ok
 Trying to collect system info... Amazon Linux AMI release 2016.03
@@ -42,7 +42,7 @@ Trying to collect docker logs... Trying to pack gathered info... ok
 ```
 * running with debug mode
 ```
-bash ecs-logs-collector.sh --mode=debug
+# bash ecs-logs-collector.sh --mode=debug
 Trying to check if it's running as root... ok
 Trying to check disk space usage... ok
 Trying to collect system info... Amazon Linux AMI release 2016.03
