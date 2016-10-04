@@ -159,6 +159,7 @@ collect_brief() {
   get_docker_info
   get_ecs_logs
   get_containers_info
+  get_containers_logs
   get_docker_logs
 }
 
@@ -410,6 +411,14 @@ get_containers_info()
   else
     die "ecs-agent not running.."
   fi
+}
+
+get_containers_logs()
+{
+  try "collect containers logs"
+  dstdir="${info_system}/containers_logs"
+  mkdir -p ${dstdir}
+  cp /var/lib/docker/containers ${dstdir}
 }
 
 enable_docker_debug()
