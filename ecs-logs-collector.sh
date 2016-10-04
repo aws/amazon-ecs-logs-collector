@@ -418,7 +418,10 @@ get_containers_logs()
   try "collect containers logs"
   dstdir="${info_system}/containers_logs"
   mkdir -p ${dstdir}
+
   cp -fR /var/lib/docker/containers ${dstdir}
+
+  ok
 }
 
 enable_docker_debug()
