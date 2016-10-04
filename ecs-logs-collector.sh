@@ -302,6 +302,7 @@ get_docker_logs()
       ;;
   esac
 
+  ok
 }
 
 get_ecs_logs()
