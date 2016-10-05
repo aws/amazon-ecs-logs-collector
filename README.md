@@ -1,12 +1,12 @@
-# ECS Logs Collector 
+# ECS Logs Collector
 ## Goals
-This project has been created to collect ECS logs file and OS logs when it comes to troubleshoot ECS support case for customer.
+This project has been created to automate the collection of ECS log files and OS log files in order to facilitate the troubleshooting of ECS support cases for customers.
 
-Below are the functions:
+Below are the current functions and capabilities:
 
 * Supported OS: Amazon Linux, Red Hat Enterprise Linux 7, Debian 8
 * Collect normal OS Logs
-* Collect normal OS settings 
+* Collect normal OS settings
 * Collect Docker Logs
 * Collect ECS agent Logs
 * Enable Debug Mode for Docker and ECS Agent ( Only availabe for Amazon Linux )
@@ -16,7 +16,7 @@ Below are the functions:
 
 * It needs to be run as root user
 ```
-# wget https://raw.githubusercontent.com/awslabs/ecs-logs-collector/master/ecs-logs-collector.sh
+# curl -O https://raw.githubusercontent.com/awslabs/ecs-logs-collector/master/ecs-logs-collector.sh
 # bash ecs-logs-collector.sh
 ```
 
@@ -71,9 +71,9 @@ If you found yourself wishing this set of frequently asked questions had an answ
 
 ## Contributing
 
-Please [create a new GitHub issue](https://github.com/awslabs/ecs-logs-collector/issues/new) for any feature requests, bugs, or documentation improvements. 
+Please [create a new GitHub issue](https://github.com/awslabs/ecs-logs-collector/issues/new) for any feature requests, bugs, or documentation improvements.
 
-Where possible, please also [submit a pull request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/) for the change. 
+Where possible, please also [submit a pull request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/) for the change.
 
 ## License
 
