@@ -391,8 +391,12 @@ get_containers_info()
     mkdir -p ${info_system}/docker
 
     for i in `docker ps |awk '{print $1}'|grep -v CONTAINER`;
-    do docker inspect $i > $info_system/docker/container-$i.txt 2>&1;
-    done
+      do docker inspect $i > $info_system/docker/container-$i.txt 2>&1
+        if grep --quiet "ECS_ENGINE_AUTH_DATA" $info_system/docker/container-$i.txt; then
+          sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' $info_system/docker/container-$i.txt
+        fi
+      done
+
 
     if [ -e /usr/bin/curl ]; then
       curl -s http://localhost:51678/v1/tasks | python -mjson.tool > ${info_system}/ecs-agent/agent-running-info.txt 2>&1
