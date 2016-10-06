@@ -212,6 +212,12 @@ get_sysinfo()
         os_name="debian"
       fi
       ;;
+    lsb-release)
+      pkgtype="deb"
+      if grep --quiet "Ubuntu 14.04" /etc/${found_file}; then
+        os_name="ubuntu14"
+      fi
+      ;;
     *)
       fail
       die "Unsupported os has been detected"
@@ -296,6 +302,9 @@ get_docker_logs()
         /bin/journalctl -u docker > ${dstdir}/docker
       fi
       ;;
+    ubuntu14)
+      cp -f /var/log/upstart/docker* ${dstdir}
+    ;;
     *)
       warning "Not supported OS types"
       ;;
@@ -350,6 +359,11 @@ get_system_services()
       ;;
     debian)
       /bin/systemctl list-units > ${info_system}/services.txt 2>&1
+      ;;
+    ubuntu14)
+      /sbin/initctl list | awk '{ print $1 }' | xargs -n1 initctl show-config > ${info_system}/services.txt 2>&1
+      printf "\n\n\n\n" >> ${info_system}/services.txt 2>&1
+      /usr/bin/service --status-all >> ${info_system}/services.txt 2>&1
       ;;
     *)
       warning "Unknown packages type."

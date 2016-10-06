@@ -4,7 +4,7 @@ This project has been created to automate the collection of ECS log files and OS
 
 Below are the current functions and capabilities:
 
-* Supported OS: Amazon Linux, Red Hat Enterprise Linux 7, Debian 8
+* Supported OS: Amazon Linux, Red Hat Enterprise Linux 7, Debian 8, Ubuntu 14.04
 * Collect normal OS Logs
 * Collect normal OS settings
 * Collect Docker Logs
