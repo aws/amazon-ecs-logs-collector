@@ -1,28 +1,31 @@
 # ECS Logs Collector 
-## Goals
-This project has been created to collect ECS logs file and OS logs when it comes to troubleshoot ECS support case for customer.
 
-Below are the functions:
+This project was created to collect [Amazon ECS](https://aws.amazon.com/ecs) log files and OS logs for troubleshooting Amazon ECS customer support cases.
+
+The following functions are supported:
 
 * Supported OS: Amazon Linux, Red Hat Enterprise Linux 7, Debian 8
-* Collect normal OS Logs
+* Collect normal OS logs
 * Collect normal OS settings 
-* Collect Docker Logs
-* Collect ECS agent Logs
-* Enable Debug Mode for Docker and ECS Agent ( Only availabe for Amazon Linux )
+* Collect Docker logs
+* Collect Amazon ECS agent Logs
+* Enable debug mode for Docker and the Amazon ECS agent (only available for Amazon Linux)
 * Create a tar zip file in the same folder as the script
 
 ## Usage
+Run this project as the root user:
 
-* It needs to be run as root user
 ```
 # wget https://raw.githubusercontent.com/awslabs/ecs-logs-collector/master/ecs-logs-collector.sh
 # bash ecs-logs-collector.sh
 ```
 
+##Example output
+The project can be used in normal or debug mode (for Amazon Linux only).
 
-### Example usage and output:
-* running in normal mode
+### Example output in normal mode
+The following output shows this project running in normal mode:
+
 ```
 # bash ecs-logs-collector.sh
 Trying to check if it's running as root... ok
@@ -40,7 +43,10 @@ Trying to collect ecs logs... ok
 Trying to get docker inspect outputs of the containers... ok
 Trying to collect docker logs... Trying to pack gathered info... ok
 ```
-* running with debug mode ( Please note this will restart Docker and ECS Agent to take effect)
+
+### Example output in debug mode
+The following output shows this project running with debug mode. Note that running in debug mode restarts Docker and the Amazon ECS agent.
+
 ```
 # bash ecs-logs-collector.sh --mode=debug
 Trying to check if it's running as root... ok
@@ -65,15 +71,11 @@ ok
 Trying to pack gathered info... ok
 ```
 
-### Add a new item to this list
-
-If you found yourself wishing this set of frequently asked questions had an answer for a particular problem, please [submit a pull request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/). The chances are that others will also benefit from having the answer listed here.
-
 ## Contributing
 
 Please [create a new GitHub issue](https://github.com/awslabs/ecs-logs-collector/issues/new) for any feature requests, bugs, or documentation improvements. 
 
-Where possible, please also [submit a pull request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/) for the change. 
+Where possible, [submit a pull request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/) for the change. 
 
 ## License
 
