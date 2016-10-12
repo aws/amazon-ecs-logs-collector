@@ -388,7 +388,7 @@ get_docker_info()
 
 get_containers_info()
 {
-  try "inspect running Docker containers and gathering Amazon ECS container agent data"
+  try "inspect running Docker containers and gather Amazon ECS container agent data"
   pgrep agent > /dev/null
 
   if [[ "$?" -eq 0 ]]; then
