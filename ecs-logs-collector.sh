@@ -174,7 +174,7 @@ collect_debug() {
 
 pack()
 {
-  try "Packing gathered log information..."
+  try "Archiving gathered log information..."
 
   local tar_bin
   tar_bin="`which tar 2>/dev/null`"
