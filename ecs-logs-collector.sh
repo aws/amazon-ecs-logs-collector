@@ -115,7 +115,7 @@ die()
 
 is_root()
 {
-  try "Checking if script is running as root..."
+  try "check if the script is running as root"
 
   if [[ "$(id -u)" != "0" ]]; then
     die "This script must be run as root!"
@@ -127,7 +127,7 @@ is_root()
 
 is_diskfull()
 {
-  try "Checking disk space usage..."
+  try "checking disk space usage"
 
   threshold=70
   i=2
@@ -174,7 +174,7 @@ collect_debug() {
 
 pack()
 {
-  try "Archiving gathered log information..."
+  try "archive gathered log information"
 
   local tar_bin
   tar_bin="`which tar 2>/dev/null`"
@@ -191,7 +191,7 @@ pack()
 
 get_sysinfo()
 {
-  try "Collecting system information..."
+  try "collect system information"
 
   res="`/bin/uname -m`"
   [ "${res}" = "amd64" -o "$res" = "x86_64" ] && arch="x86_64" || arch="i386"
@@ -227,7 +227,7 @@ get_sysinfo()
 
 get_mounts_info()
 {
-  try "Getting mount points and volume information..."
+  try "get mount points and volume information"
   mkdir -p ${info_system}
   mount > ${info_system}/mounts.txt
   echo "" >> ${info_system}/mounts.txt
@@ -244,7 +244,7 @@ get_mounts_info()
 
 get_selinux_info()
 {
-  try "Checking SELinux status..."
+  try "check SELinux status"
 
   enforced="`getenforce 2>/dev/null`"
 
@@ -260,7 +260,7 @@ get_selinux_info()
 
 get_iptables_info()
 {
-  try "Getting iptables list..."
+  try "get iptables list"
 
   mkdir -p ${info_system}
   /sbin/iptables -nvL -t nat  > ${info_system}/iptables.txt
@@ -270,7 +270,7 @@ get_iptables_info()
 
 get_common_logs()
 {
-  try "Collecting common operating system logs..."
+  try "collect common operating system logs"
   dstdir="${info_system}/var_log"
   mkdir -p ${dstdir}
 
@@ -283,7 +283,7 @@ get_common_logs()
 
 get_docker_logs()
 {
-  try "Collecting Docker daemon logs..."
+  try "collect Docker daemon logs"
   dstdir="${info_system}/docker_log"
   mkdir -p ${dstdir}
   case "${os_name}" in
@@ -309,7 +309,7 @@ get_docker_logs()
 
 get_ecs_logs()
 {
-  try "Collecting Amazon ECS container agent logs..."
+  try "collect Amazon ECS container agent logs"
   dstdir="${info_system}/ecs-agent"
 
   mkdir -p ${dstdir}
@@ -322,7 +322,7 @@ get_ecs_logs()
 
 get_pkglist()
 {
-  try "Detectng installed packages..."
+  try "detect installed packages"
 
   mkdir -p ${info_system}
   case "${pkgtype}" in
@@ -342,7 +342,7 @@ get_pkglist()
 
 get_system_services()
 {
-  try "Detecting active system services list..."
+  try "detect active system services list"
   mkdir -p ${info_system}
   case "${os_name}" in
     amazon)
@@ -368,7 +368,7 @@ get_system_services()
 
 get_docker_info()
 {
-  try "Gathering Docker daemon information..."
+  try "gather Docker daemon information"
 
   pgrep docker > /dev/null
   if [[ "$?" -eq 0 ]]; then
@@ -388,7 +388,7 @@ get_docker_info()
 
 get_containers_info()
 {
-  try "Inspecting running Docker containers and gathering Amazon ECS container agent data..."
+  try "inspect running Docker containers and gathering Amazon ECS container agent data"
   pgrep agent > /dev/null
 
   if [[ "$?" -eq 0 ]]; then
@@ -419,7 +419,7 @@ get_containers_info()
 
 enable_docker_debug()
 {
-  try "Enabling debug mode for the Docker daemon."
+  try "enable debug mode for the Docker daemon"
 
   case "${os_name}" in
     amazon)
@@ -432,7 +432,7 @@ enable_docker_debug()
         if [ -e /etc/sysconfig/docker ]; then
           echo "OPTIONS=\"-D\"" >> /etc/sysconfig/docker
 
-          try "Restarting Docker daemon to enable debug mode..."
+          try "restart Docker daemon to enable debug mode"
           /sbin/service docker restart
         fi
 
@@ -448,7 +448,7 @@ enable_docker_debug()
 
 enable_ecs_agent_debug()
 {
-  try "Enabling debug mode for the Amazon ECS container agent..."
+  try "enable debug mode for the Amazon ECS container agent"
 
   case "${os_name}" in
     amazon)
@@ -460,7 +460,7 @@ enable_ecs_agent_debug()
         if [ -e /etc/ecs/ecs.config ]; then
           echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
 
-          try "Restarting the Amazon ECS container agent to enable debug mode."
+          try "restart the Amazon ECS container agent to enable debug mode"
           stop ecs; start ecs
         fi
 
