@@ -127,7 +127,7 @@ is_root()
 
 is_diskfull()
 {
-  try "checking disk space usage"
+  try "check disk space usage"
 
   threshold=70
   i=2
