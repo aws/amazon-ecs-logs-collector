@@ -434,6 +434,7 @@ enable_docker_debug()
 
           try "restart Docker daemon to enable debug mode"
           /sbin/service docker restart
+		  start ecs
         fi
 
         ok
@@ -458,12 +459,14 @@ enable_ecs_agent_debug()
         info "Debug mode is already enabled."
       else
         if [ -e /etc/ecs/ecs.config ]; then
-          echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
+		  try "back up original ECS config"
+		  cp /etc/ecs/ecs.config /etc/ecs/ecs.config.bak
+	    fi
+        echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
 
-          try "restart the Amazon ECS container agent to enable debug mode"
-          stop ecs; start ecs
-        fi
-
+        try "restart the Amazon ECS container agent to enable debug mode"
+        stop ecs; start ecs
+        
         ok
 
       fi
