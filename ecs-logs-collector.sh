@@ -10,14 +10,17 @@
 #    http://aws.amazon.com/apache2.0/
 #
 # or in the "license" file accompanying this file.
-# This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
-# either express or implied. See the License for the specific language governing permissions
-# and limitations under the License.
+# This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+# CONDITIONS OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the License.
 #
 #
-# Collect Docker and ECS agent logs on Amazon Linux, Redhat 7, Debian 8.
-# Collect general system logs
-# Ability to enable debug settings for Docker and ECS agent for Amazon Linux Only. (usage see --help)
+# - Collects Docker daemon and Amazon ECS container agent logs on Amazon Linux,
+#   Redhat 7, Debian 8.
+# - Collects general operating system logs.
+# - Optional ability to enable debug mode for the Docker daemon and Amazon ECS
+#   container agent on Amazon Linux variants, such as the Amazon ECS-optimized
+#   AMI. For usage information, see --help.
 
 export LANG="C"
 export LC_ALL="C"
@@ -39,17 +42,18 @@ progname='' # defined in parse_options
 help()
 {
   echo "USAGE: ${progname} [--mode=[brief|debug]]"
-  echo "       ${progname} [--mode=[brief|debug]]"
   echo "       ${progname} --help"
   echo ""
   echo "OPTIONS:"
-  echo "     --mode  Set required verbosity level. See MODES section"
-  echo "             to get an additional info."
-  echo "     --help  Show this message"
+  echo "     --mode  Sets the desired mode of the script. For more information,"
+  echo "             see the MODES section."
+  echo "     --help  Show this help message."
   echo ""
   echo "MODES:"
-  echo "     brief   Get brief info"
-  echo "     debug   Includes brief info and enable docker and ecs-agent debug mode"
+  echo "     brief   Gathers basic operating system, Docker daemon, and Amazon"
+  echo "             ECS container agent logs. This is the default mode."
+  echo "     debug   Collects 'brief' logs and also enables debug mode for the"
+  echo "             Docker daemon and the Amazon ECS container agent."
 }
 
 parse_options()
@@ -111,7 +115,7 @@ die()
 
 is_root()
 {
-  try "check if it's running as root"
+  try "check if the script is running as root"
 
   if [[ "$(id -u)" != "0" ]]; then
     die "This script must be run as root!"
@@ -132,7 +136,7 @@ is_diskfull()
   for percent in ${result}; do
     if [[ "${percent}" -gt "${threshold}" ]]; then
       partition=`df -kh | head -$i | tail -1| awk '{print $1}'`
-      warning "${partition} is ${percent}% full, please make sure there's enough disk space to copy the log files"
+      warning "${partition} is ${percent}% full, please ensure adequate disk space to collect and store the log files."
     fi
     let i=$i+1
   done
@@ -170,11 +174,11 @@ collect_debug() {
 
 pack()
 {
-  try "pack gathered info"
+  try "archive gathered log information"
 
   local tar_bin
   tar_bin="`which tar 2>/dev/null`"
-  [ -z "${tar_bin}" ] && warning "TAR archiver didn't find, please install tar package to create a tar zip file, but you can still see all the logs in the collect folder"
+  [ -z "${tar_bin}" ] && warning "TAR archiver not found, please install a TAR archiver to create the collection archive. You can still view the logs in the collect folder."
 
   cd ${curdir}
   ${tar_bin} -czf ${infodir}.tgz ${infodir} > /dev/null 2>&1
@@ -187,7 +191,7 @@ pack()
 
 get_sysinfo()
 {
-  try "collect system info"
+  try "collect system information"
 
   res="`/bin/uname -m`"
   [ "${res}" = "amd64" -o "$res" = "x86_64" ] && arch="x86_64" || arch="i386"
@@ -214,7 +218,7 @@ get_sysinfo()
       ;;
     *)
       fail
-      die "Unsupported os has been detected"
+      die "Unsupported OS detected."
       ;;
   esac
 
@@ -223,7 +227,7 @@ get_sysinfo()
 
 get_mounts_info()
 {
-  try "get mountpoints and volumes info"
+  try "get mount points and volume information"
   mkdir -p ${info_system}
   mount > ${info_system}/mounts.txt
   echo "" >> ${info_system}/mounts.txt
@@ -240,7 +244,7 @@ get_mounts_info()
 
 get_selinux_info()
 {
-  try "get selinux status"
+  try "check SELinux status"
 
   enforced="`getenforce 2>/dev/null`"
 
@@ -266,7 +270,7 @@ get_iptables_info()
 
 get_common_logs()
 {
-  try "collect common system logs"
+  try "collect common operating system logs"
   dstdir="${info_system}/var_log"
   mkdir -p ${dstdir}
 
@@ -279,7 +283,7 @@ get_common_logs()
 
 get_docker_logs()
 {
-  try "collect docker logs"
+  try "collect Docker daemon logs"
   dstdir="${info_system}/docker_log"
   mkdir -p ${dstdir}
   case "${os_name}" in
@@ -297,7 +301,7 @@ get_docker_logs()
       fi
       ;;
     *)
-      warning "Not supported OS types"
+      warning "The current operating system is not supported."
       ;;
   esac
 
@@ -305,7 +309,7 @@ get_docker_logs()
 
 get_ecs_logs()
 {
-  try "collect ecs logs"
+  try "collect Amazon ECS container agent logs"
   dstdir="${info_system}/ecs-agent"
 
   mkdir -p ${dstdir}
@@ -318,7 +322,7 @@ get_ecs_logs()
 
 get_pkglist()
 {
-  try "get packages list"
+  try "detect installed packages"
 
   mkdir -p ${info_system}
   case "${pkgtype}" in
@@ -329,7 +333,7 @@ get_pkglist()
       dpkg --list > ${info_system}/pkglist.txt 2>&1
       ;;
     *)
-      warning "Unknown packages type."
+      warning "Unknown package type."
       ;;
   esac
 
@@ -338,7 +342,7 @@ get_pkglist()
 
 get_system_services()
 {
-  try "get system active services list"
+  try "detect active system services list"
   mkdir -p ${info_system}
   case "${os_name}" in
     amazon)
@@ -351,7 +355,7 @@ get_system_services()
       /bin/systemctl list-units > ${info_system}/services.txt 2>&1
       ;;
     *)
-      warning "Unknown packages type."
+      warning "Unable to determine active services."
       ;;
   esac
 
@@ -364,7 +368,7 @@ get_system_services()
 
 get_docker_info()
 {
-  try "get docker info message"
+  try "gather Docker daemon information"
 
   pgrep docker > /dev/null
   if [[ "$?" -eq 0 ]]; then
@@ -378,13 +382,13 @@ get_docker_info()
     ok
 
   else
-    die "docker not running.."
+    die "The Docker daemon is not running."
   fi
 }
 
 get_containers_info()
 {
-  try "get docker inspect outputs of the containers"
+  try "inspect running Docker containers and gather Amazon ECS container agent data"
   pgrep agent > /dev/null
 
   if [[ "$?" -eq 0 ]]; then
@@ -409,20 +413,20 @@ get_containers_info()
     ok
 
   else
-    die "ecs-agent not running.."
+    die "The Amazon ECS container agent is not running."
   fi
 }
 
 enable_docker_debug()
 {
-  try "enable docker debug mode"
+  try "enable debug mode for the Docker daemon"
 
   case "${os_name}" in
     amazon)
 
       if [ -e /etc/sysconfig/docker ] && grep -q "OPTIONS=\"-D" /etc/sysconfig/docker
       then
-        info "Debug mode has been enabled"
+        info "Debug mode is already enabled."
       else
 
         if [ -e /etc/sysconfig/docker ]; then
@@ -437,26 +441,26 @@ enable_docker_debug()
       fi
       ;;
     *)
-      warning "This OS type is not supported."
+      warning "The current operating system is not supported."
       ;;
   esac
 }
 
 enable_ecs_agent_debug()
 {
-  try "enable ecs agent debug mode"
+  try "enable debug mode for the Amazon ECS container agent"
 
   case "${os_name}" in
     amazon)
 
       if [ -e /etc/ecs/ecs.config ] &&  grep -q "ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
       then
-        info "Debug mode has been enabled"
+        info "Debug mode is already enabled."
       else
         if [ -e /etc/ecs/ecs.config ]; then
           echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
 
-          try "restart ECS agent to enable debug mode"
+          try "restart the Amazon ECS container agent to enable debug mode"
           stop ecs; start ecs
         fi
 
@@ -465,7 +469,7 @@ enable_ecs_agent_debug()
       fi
       ;;
     *)
-      warning "This OS type is not supported."
+      warning "The current operating system is not supported."
       ;;
   esac
 }
