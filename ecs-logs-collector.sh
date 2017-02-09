@@ -119,7 +119,6 @@ is_root()
 
   if [[ "$(id -u)" != "0" ]]; then
     die "This script must be run as root!"
-
   fi
 
   ok
@@ -202,22 +201,27 @@ get_sysinfo()
   done
 
   case "${found_file}" in
+    lsb-release)
+      pkgtype="docker"
+      if grep -q "CoreOS" /etc/${found_file}; then
+        os_name="coreos"
+      fi
+      ;;
     system-release)
       pkgtype="rpm"
-      if grep "Amazon" /etc/${found_file}; then
+      if grep -q "Amazon" /etc/${found_file}; then
         os_name="amazon"
-      elif grep "Red Hat" /etc/${found_file}; then
+      elif grep -q "Red Hat" /etc/${found_file}; then
         os_name="redhat"
       fi
       ;;
     debian_version)
       pkgtype="deb"
-      if grep "8" /etc/${found_file}; then
+      if grep -q "8" /etc/${found_file}; then
         os_name="debian"
       fi
       ;;
     *)
-      fail
       die "Unsupported OS detected."
       ;;
   esac
@@ -274,9 +278,16 @@ get_common_logs()
   dstdir="${info_system}/var_log"
   mkdir -p ${dstdir}
 
-  for entry in syslog messages dmesg; do
-    [ -e "/var/log/${entry}" ] && cp -fR /var/log/${entry} ${dstdir}/
-  done
+  case "${os_name}" in
+    coreos)
+      /bin/journalctl --system > ${dstdir}/system-journal
+      ;;
+    *)
+      for entry in syslog messages dmesg; do
+        [ -e "/var/log/${entry}" ] && cp -fR /var/log/${entry} ${dstdir}/
+      done
+      ;;
+  esac
 
   ok
 }
@@ -289,22 +300,18 @@ get_docker_logs()
   case "${os_name}" in
     amazon)
       cp /var/log/docker ${dstdir}
+      ok
       ;;
-    redhat)
+    redhat|debian|coreos)
       if [ -e /bin/journalctl ]; then
         /bin/journalctl -u docker > ${dstdir}/docker
       fi
-      ;;
-    debian)
-      if [ -e /bin/journalctl ]; then
-        /bin/journalctl -u docker > ${dstdir}/docker
-      fi
+      ok
       ;;
     *)
       warning "The current operating system is not supported."
       ;;
   esac
-
 }
 
 get_ecs_logs()
@@ -328,30 +335,28 @@ get_pkglist()
   case "${pkgtype}" in
     rpm)
       rpm -qa >${info_system}/pkglist.txt 2>&1
+      ok
       ;;
     deb)
       dpkg --list > ${info_system}/pkglist.txt 2>&1
+      ok
       ;;
     *)
       warning "Unknown package type."
       ;;
   esac
-
-  ok
 }
 
 get_system_services()
 {
   try "detect active system services list"
+
   mkdir -p ${info_system}
   case "${os_name}" in
     amazon)
       chkconfig --list > ${info_system}/services.txt 2>&1
       ;;
-    redhat)
-      /bin/systemctl list-units > ${info_system}/services.txt 2>&1
-      ;;
-    debian)
+    redhat|debian|coreos)
       /bin/systemctl list-units > ${info_system}/services.txt 2>&1
       ;;
     *)
@@ -376,42 +381,80 @@ get_docker_info()
 
     docker info > ${info_system}/docker/docker-info.txt 2>&1
     docker ps --all --no-trunc > ${info_system}/docker/docker-ps.txt 2>&1
-    docker images > ${info_system}/docker/docker-images.txt 2>&1
+    docker images --digests --all > ${info_system}/docker/docker-images.txt 2>&1
     docker version > ${info_system}/docker/docker-version.txt 2>&1
 
     ok
-
   else
     die "The Docker daemon is not running."
+  fi
+}
+
+get_networks_info()
+{
+  try "inspect Docker networks"
+
+  docker network
+  if [[ "$?" -eq 0 ]]; then
+    mkdir -p ${info_system}/docker/networks
+
+    for net in `docker network ls -q`; do
+      docker network inspect ${net} > ${info_system}/docker/networks/${net}
+    done
+
+    ok
+  else
+    warning "The 'docker network' command is not supported"
+    fail
+  fi
+}
+
+get_volumes_info()
+{
+  try "inspect Docker volumes"
+
+  docker volume
+  if [[ "$?" -eq 0 ]]; then
+    mkdir -p ${info_system}/docker/volumes
+
+    for vol in `docker volume ls -q`; do
+      docker volume inspect ${vol} > ${info_system}/docker/volumes/${vol}
+    done
+
+    ok
+  else
+    warning "The 'docker volume' command is not supported"
+    fail
   fi
 }
 
 get_containers_info()
 {
   try "inspect running Docker containers and gather Amazon ECS container agent data"
-  pgrep agent > /dev/null
+  pgrep -f ecs-agent > /dev/null
 
   if [[ "$?" -eq 0 ]]; then
     mkdir -p ${info_system}/docker
 
-    for i in `docker ps |awk '{print $1}'|grep -v CONTAINER`;
-    do docker inspect $i > $info_system/docker/container-$i.txt 2>&1;
+    for cid in `docker ps -q`; do
+      docker inspect ${cid} > ${info_system}/docker/container-${cid}.txt 2>&1;
     done
 
     if [ -e /usr/bin/curl ]; then
-      curl -s http://localhost:51678/v1/tasks | python -mjson.tool > ${info_system}/ecs-agent/agent-running-info.txt 2>&1
+      curl -s http://localhost:51678/v1/tasks > ${info_system}/ecs-agent/tasks.json 2>&1
     fi
 
-    if [ -e /var/lib/ecs/data/ecs_agent_data.json ]; then
-      cat  /var/lib/ecs/data/ecs_agent_data.json | python -mjson.tool > ${info_system}/ecs-agent/ecs_agent_data.txt 2>&1
+    ECS_AGENT_DATA_JSON=${ECS_AGENT_DATA_JSON:-"/var/lib/ecs/data/ecs_agent_data.json"}
+    if [ -e ${ECS_AGENT_DATA_JSON} ]; then
+      cat ${ECS_AGENT_DATA_JSON} > ${info_system}/ecs-agent/ecs_agent_data.json 2>&1
     fi
 
-    if [ -e /etc/ecs/ecs.config ]; then
-      cp -f /etc/ecs/ecs.config ${info_system}/ecs-agent/ 2>&1
+    ECS_AGENT_CONFIG=${ECS_AGENT_CONFIG:-"/etc/ecs/ecs.config"}
+    if [ -e ${ECS_AGENT_CONFIG} ]; then
+      cp -f ${ECS_AGENT_CONFIG} ${info_system}/ecs-agent/ 2>&1
     fi
 
     ok
-
   else
     die "The Amazon ECS container agent is not running."
   fi
@@ -421,24 +464,38 @@ enable_docker_debug()
 {
   try "enable debug mode for the Docker daemon"
 
+  if docker info | grep -q "Debug Mode (server): true"
+  then
+    info "Debug mode is already enabled."
+    return
+  fi
+
   case "${os_name}" in
     amazon)
+      if [ -e /etc/sysconfig/docker ]; then
+        echo "OPTIONS=\"-D\"" >> /etc/sysconfig/docker
 
-      if [ -e /etc/sysconfig/docker ] && grep -q "OPTIONS=\"-D" /etc/sysconfig/docker
-      then
-        info "Debug mode is already enabled."
-      else
-
-        if [ -e /etc/sysconfig/docker ]; then
-          echo "OPTIONS=\"-D\"" >> /etc/sysconfig/docker
-
-          try "restart Docker daemon to enable debug mode"
-          /sbin/service docker restart
-        fi
-
-        ok
-
+        try "restart Docker daemon to enable debug mode"
+        /sbin/service docker restart
       fi
+
+      ok
+      ;;
+    coreos)
+      if systemctl cat docker.service | grep -q "DOCKER_OPTS=\-D"; then
+        try "restart Docker daemon to enable debug mode"
+        systemctl restart docker.service
+      else
+        mkdir -p /etc/systemd/system/docker.service.d/
+
+        echo "[Service]" > /etc/systemd/system/docker.service.d/10-docker-options.conf
+        echo "Environment=\"DOCKER_OPTS=-D\"" > /etc/systemd/system/docker.service.d/10-docker-options.conf
+
+        try "restart Docker daemon to enable debug mode"
+        systemctl restart docker.service
+      fi
+
+      ok
       ;;
     *)
       warning "The current operating system is not supported."
@@ -450,23 +507,22 @@ enable_ecs_agent_debug()
 {
   try "enable debug mode for the Amazon ECS container agent"
 
+  if [ -e /etc/ecs/ecs.config ] &&  grep -q "ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
+  then
+    info "Debug mode is already enabled."
+    return
+  fi
+
   case "${os_name}" in
     amazon)
+      if [ -e /etc/ecs/ecs.config ]; then
+        echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
 
-      if [ -e /etc/ecs/ecs.config ] &&  grep -q "ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
-      then
-        info "Debug mode is already enabled."
-      else
-        if [ -e /etc/ecs/ecs.config ]; then
-          echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
-
-          try "restart the Amazon ECS container agent to enable debug mode"
-          stop ecs; start ecs
-        fi
-
-        ok
-
+        try "restart the Amazon ECS container agent to enable debug mode"
+        stop ecs; start ecs
       fi
+
+      ok
       ;;
     *)
       warning "The current operating system is not supported."
