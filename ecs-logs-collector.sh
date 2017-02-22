@@ -34,6 +34,7 @@ info_system="${infodir}/system"
 pkgtype=''  # defined in get_sysinfo
 os_name=''  # defined in get_sysinfo
 progname='' # defined in parse_options
+python=''   # defined in get_python_command
 
 
 # Common functions
@@ -154,6 +155,7 @@ collect_brief() {
   is_root
   is_diskfull
   get_sysinfo
+  get_python_command
   get_common_logs
   get_mounts_info
   get_selinux_info
@@ -227,6 +229,22 @@ get_sysinfo()
       die "Unsupported OS detected."
       ;;
   esac
+
+  ok
+}
+
+get_python_command()
+{
+  try "get python command"
+
+  if type python >/dev/null 2>&1; then
+    python=python
+  elif type python3 >/dev/null 2>&1; then
+    python=python3
+  else
+    fail
+    die "python or python3 is required."
+  fi
 
   ok
 }
@@ -405,11 +423,11 @@ get_containers_info()
     done
 
     if [ -e /usr/bin/curl ]; then
-      curl -s http://localhost:51678/v1/tasks | python -mjson.tool > ${info_system}/ecs-agent/agent-running-info.txt 2>&1
+      curl -s http://localhost:51678/v1/tasks | $python -mjson.tool > ${info_system}/ecs-agent/agent-running-info.txt 2>&1
     fi
 
     if [ -e /var/lib/ecs/data/ecs_agent_data.json ]; then
-      cat  /var/lib/ecs/data/ecs_agent_data.json | python -mjson.tool > ${info_system}/ecs-agent/ecs_agent_data.txt 2>&1
+      cat  /var/lib/ecs/data/ecs_agent_data.json | $python -mjson.tool > ${info_system}/ecs-agent/ecs_agent_data.txt 2>&1
     fi
 
     if [ -e /etc/ecs/ecs.config ]; then
