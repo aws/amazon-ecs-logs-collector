@@ -4,7 +4,7 @@ This project was created to collect [Amazon ECS](https://aws.amazon.com/ecs) log
 
 The following functions are supported:
 
-* Supported OS: Amazon Linux, Red Hat Enterprise Linux 7, Debian 8
+* Supported OS: Amazon Linux, Red Hat Enterprise Linux 7, Debian 8, Ubuntu 16.04
 * Collect normal OS logs
 * Collect normal OS settings 
 * Collect Docker logs

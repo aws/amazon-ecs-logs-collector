@@ -16,7 +16,7 @@
 #
 #
 # - Collects Docker daemon and Amazon ECS container agent logs on Amazon Linux,
-#   Redhat 7, Debian 8.
+#   Redhat 7, Debian 8, Ubuntu 16.04.
 # - Collects general operating system logs.
 # - Optional ability to enable debug mode for the Docker daemon and Amazon ECS
 #   container agent on Amazon Linux variants, such as the Amazon ECS-optimized
@@ -208,6 +208,12 @@ get_sysinfo()
         os_name="amazon"
       elif grep "Red Hat" /etc/${found_file}; then
         os_name="redhat"
+      fi
+      ;;
+    lsb-release)
+      pkgtype="deb"
+      if grep "DISTRIB_RELEASE=16.04" /etc/${found_file}; then
+        os_name="debian"
       fi
       ;;
     debian_version)
