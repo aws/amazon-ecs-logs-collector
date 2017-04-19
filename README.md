@@ -20,7 +20,7 @@ Run this project as the root user:
 # bash ecs-logs-collector.sh
 ```
 
-##Example output
+## Example output
 The project can be used in normal or debug mode (for Amazon Linux only).
 
 ### Example output in normal mode
