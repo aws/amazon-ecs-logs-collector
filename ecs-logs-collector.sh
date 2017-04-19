@@ -204,16 +204,22 @@ get_sysinfo()
   case "${found_file}" in
     system-release)
       pkgtype="rpm"
-      if grep "Amazon" /etc/${found_file}; then
+      if grep --quiet "Amazon" /etc/${found_file}; then
         os_name="amazon"
-      elif grep "Red Hat" /etc/${found_file}; then
+      elif grep --quiet "Red Hat" /etc/${found_file}; then
         os_name="redhat"
       fi
       ;;
     debian_version)
       pkgtype="deb"
-      if grep "8" /etc/${found_file}; then
+      if grep --quiet "8" /etc/${found_file}; then
         os_name="debian"
+      fi
+      ;;
+    lsb-release)
+      pkgtype="deb"
+      if grep --quiet "Ubuntu 14.04" /etc/${found_file}; then
+        os_name="ubuntu14"
       fi
       ;;
     *)
@@ -300,11 +306,15 @@ get_docker_logs()
         /bin/journalctl -u docker > ${dstdir}/docker
       fi
       ;;
+    ubuntu14)
+      cp -f /var/log/upstart/docker* ${dstdir}
+    ;;
     *)
       warning "The current operating system is not supported."
       ;;
   esac
 
+  ok
 }
 
 get_ecs_logs()
@@ -354,6 +364,11 @@ get_system_services()
     debian)
       /bin/systemctl list-units > ${info_system}/services.txt 2>&1
       ;;
+    ubuntu14)
+      /sbin/initctl list | awk '{ print $1 }' | xargs -n1 initctl show-config > ${info_system}/services.txt 2>&1
+      printf "\n\n\n\n" >> ${info_system}/services.txt 2>&1
+      /usr/bin/service --status-all >> ${info_system}/services.txt 2>&1
+      ;;
     *)
       warning "Unable to determine active services."
       ;;
@@ -395,8 +410,12 @@ get_containers_info()
     mkdir -p ${info_system}/docker
 
     for i in `docker ps |awk '{print $1}'|grep -v CONTAINER`;
-    do docker inspect $i > $info_system/docker/container-$i.txt 2>&1;
-    done
+      do docker inspect $i > $info_system/docker/container-$i.txt 2>&1
+        if grep --quiet "ECS_ENGINE_AUTH_DATA" $info_system/docker/container-$i.txt; then
+          sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' $info_system/docker/container-$i.txt
+        fi
+      done
+
 
     if [ -e /usr/bin/curl ]; then
       curl -s http://localhost:51678/v1/tasks | python -mjson.tool > ${info_system}/ecs-agent/agent-running-info.txt 2>&1
@@ -408,6 +427,9 @@ get_containers_info()
 
     if [ -e /etc/ecs/ecs.config ]; then
       cp -f /etc/ecs/ecs.config ${info_system}/ecs-agent/ 2>&1
+      if grep --quiet "ECS_ENGINE_AUTH_DATA" ${info_system}/ecs-agent/ecs.config; then
+        sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' ${info_system}/ecs-agent/ecs.config
+      fi
     fi
 
     ok
