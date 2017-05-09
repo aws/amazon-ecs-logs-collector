@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2016 Amazon.com, Inc. or its affiliates.
+# Copyright 2016-2017 Amazon.com, Inc. or its affiliates.
 # All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -161,7 +161,8 @@ collect_brief() {
   get_pkglist
   get_system_services
   get_docker_info
-  get_ecs_logs
+  get_ecs_agent_logs
+  get_ecs_init_logs
   get_containers_info
   get_docker_logs
 }
@@ -317,13 +318,26 @@ get_docker_logs()
   ok
 }
 
-get_ecs_logs()
+get_ecs_agent_logs()
 {
   try "collect Amazon ECS container agent logs"
   dstdir="${info_system}/ecs-agent"
 
   mkdir -p ${dstdir}
   for entry in ecs-agent.log*; do
+    cp -fR /var/log/ecs/${entry} ${dstdir}/
+  done
+
+  ok
+}
+
+get_ecs_init_logs()
+{
+  try "collect Amazon ECS init logs"
+  dstdir="${info_system}/ecs-init"
+
+  mkdir -p ${dstdir}
+  for entry in ecs-init.log.*; do
     cp -fR /var/log/ecs/${entry} ${dstdir}/
   done
 
