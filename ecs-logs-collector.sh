@@ -164,6 +164,7 @@ collect_brief() {
   get_ecs_agent_logs
   get_ecs_init_logs
   get_containers_info
+  get_containers_logs
   get_docker_logs
 }
 
@@ -451,6 +452,17 @@ get_containers_info()
   else
     die "The Amazon ECS container agent is not running."
   fi
+}
+
+get_containers_logs()
+{
+  try "collect containers logs"
+  dstdir="${info_system}/containers_logs"
+  mkdir -p ${dstdir}
+
+  cp -fR /var/lib/docker/containers ${dstdir}
+
+  ok
 }
 
 enable_docker_debug()
