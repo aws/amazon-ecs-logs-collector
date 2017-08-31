@@ -389,7 +389,7 @@ get_system_services()
   esac
 
   top -b -n 1 > ${info_system}/top.txt 2>&1
-  ps -fauxwww > ${info_system}/ps.txt 2>&1
+  ps fauxwww > ${info_system}/ps.txt 2>&1
   netstat -plant > ${info_system}/netstat.txt 2>&1
 
   ok
