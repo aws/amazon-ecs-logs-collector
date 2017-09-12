@@ -460,13 +460,13 @@ enable_docker_debug()
   case "${os_name}" in
     amazon)
 
-      if [ -e /etc/sysconfig/docker ] && grep -q "OPTIONS=\"-D" /etc/sysconfig/docker
+      if [ -e /etc/sysconfig/docker ] && grep -q "^OPTIONS=\"-D \$OPTIONS" /etc/sysconfig/docker
       then
         info "Debug mode is already enabled."
       else
 
         if [ -e /etc/sysconfig/docker ]; then
-          echo "OPTIONS=\"-D\"" >> /etc/sysconfig/docker
+          echo "OPTIONS=\"-D \$OPTIONS\"" >> /etc/sysconfig/docker
 
           try "restart Docker daemon to enable debug mode"
           /sbin/service docker restart
