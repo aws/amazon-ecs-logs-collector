@@ -50,10 +50,13 @@ help()
   echo "     --help  Show this help message."
   echo ""
   echo "MODES:"
-  echo "     brief   Gathers basic operating system, Docker daemon, and Amazon"
-  echo "             ECS container agent logs. This is the default mode."
-  echo "     debug   Collects 'brief' logs and also enables debug mode for the"
-  echo "             Docker daemon and the Amazon ECS container agent."
+  echo "     brief       Gathers basic operating system, Docker daemon, and Amazon"
+  echo "                 ECS container agent logs. This is the default mode."
+  echo "     debug       Collects 'brief' logs and also enables debug mode for the"
+  echo "                 Docker daemon and the Amazon ECS container agent."
+  echo "     debug-only  enables debug mode for the Docker daemon and the Amazon"
+  echo "                 ECS container agent without collecting logs"
+  
 }
 
 parse_options()
@@ -167,10 +170,14 @@ collect_brief() {
   get_docker_logs
 }
 
-collect_debug() {
-  collect_brief
+enable_debug() {
   enable_docker_debug
   enable_ecs_agent_debug
+}
+
+collect_debug() {
+  collect_brief
+  enable_debug
 }
 
 pack()
@@ -520,14 +527,17 @@ case "${mode}" in
   brief)
     cleanup
     collect_brief
+    pack
     ;;
   debug)
     cleanup
     collect_debug
+    pack
+    ;;
+  debug-only)
+    enable_debug
     ;;
   *)
     help && exit 1
     ;;
 esac
-
-pack
