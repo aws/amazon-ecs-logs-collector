@@ -489,7 +489,7 @@ enable_ecs_agent_debug()
   case "${os_name}" in
     amazon)
 
-      if [ -e /etc/ecs/ecs.config ] &&  grep -q "ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
+      if [ -e /etc/ecs/ecs.config ] &&  grep -q "^ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
       then
         info "Debug mode is already enabled."
       else
