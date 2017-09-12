@@ -153,10 +153,13 @@ cleanup()
   rm -f ${curdir}/collect.tgz
 }
 
-collect_brief() {
+init() {
   is_root
-  is_diskfull
   get_sysinfo
+}
+collect_brief() {
+  init
+  is_diskfull
   get_common_logs
   get_mounts_info
   get_selinux_info
@@ -171,6 +174,7 @@ collect_brief() {
 }
 
 enable_debug() {
+  init
   enable_docker_debug
   enable_ecs_agent_debug
 }
