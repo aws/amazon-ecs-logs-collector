@@ -247,6 +247,8 @@ get_mounts_info()
     vgs > ${info_system}/vgs.txt
   fi
 
+  vmstat 1 5 > ${info_system}/vmstat.txt
+
   ok
 }
 
