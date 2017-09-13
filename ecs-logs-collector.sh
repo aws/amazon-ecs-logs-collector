@@ -460,7 +460,7 @@ enable_docker_debug()
   case "${os_name}" in
     amazon)
 
-      if [ -e /etc/sysconfig/docker ] && grep -q "^OPTIONS=\"-D \$OPTIONS" /etc/sysconfig/docker
+      if [ -e /etc/sysconfig/docker ] && grep -q "^\s*OPTIONS=\"-D" /etc/sysconfig/docker
       then
         info "Debug mode is already enabled."
       else
@@ -489,7 +489,7 @@ enable_ecs_agent_debug()
   case "${os_name}" in
     amazon)
 
-      if [ -e /etc/ecs/ecs.config ] &&  grep -q "^ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
+      if [ -e /etc/ecs/ecs.config ] &&  grep -q "^\s*ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
       then
         info "Debug mode is already enabled."
       else
