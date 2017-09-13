@@ -54,7 +54,7 @@ help()
   echo "                 ECS container agent logs. This is the default mode."
   echo "     debug       Collects 'brief' logs and also enables debug mode for the"
   echo "                 Docker daemon and the Amazon ECS container agent."
-  echo "     debug-only  enables debug mode for the Docker daemon and the Amazon"
+  echo "     debug-only  Enables debug mode for the Docker daemon and the Amazon"
   echo "                 ECS container agent without collecting logs"
   
 }
@@ -177,11 +177,6 @@ enable_debug() {
   init
   enable_docker_debug
   enable_ecs_agent_debug
-}
-
-collect_debug() {
-  collect_brief
-  enable_debug
 }
 
 pack()
@@ -535,7 +530,8 @@ case "${mode}" in
     ;;
   debug)
     cleanup
-    collect_debug
+    collect_brief
+    enable_debug
     pack
     ;;
   debug-only)
