@@ -9,6 +9,7 @@ The following functions are supported:
 * Collect normal OS settings 
 * Collect Docker logs
 * Collect Amazon ECS agent Logs
+* Collect Instance network information
 * Enable debug mode for Docker and the Amazon ECS agent (only available for Amazon Linux)
 * Create a tar zip file in the same folder as the script
 
@@ -28,20 +29,22 @@ The following output shows this project running in normal mode:
 
 ```
 # bash ecs-logs-collector.sh
-Trying to check if it's running as root... ok
+Trying to check if the script is running as root... ok
 Trying to check disk space usage... ok
-Trying to collect system info... Amazon Linux AMI release 2016.03
-ok
-Trying to collect common system logs... ok
-Trying to get mountpoints and volumes info... ok
-Trying to get selinux status... ok
+Trying to collect system information... ok
+Trying to collect common operating system logs... ok
+Trying to get mount points and volume information... ok
+Trying to check SELinux status... ok
 Trying to get iptables list... ok
-Trying to get packages list... ok
-Trying to get system active services list... ok
-Trying to get docker info message... ok
-Trying to collect ecs logs... ok
-Trying to get docker inspect outputs of the containers... ok
-Trying to collect docker logs... Trying to pack gathered info... ok
+Trying to detect installed packages... ok
+Trying to detect active system services list... ok
+Trying to gather Docker daemon information... ok
+Trying to collect Amazon ECS container agent logs... ok
+Trying to collect Amazon ECS init logs... ok
+Trying to inspect running Docker containers and gather Amazon ECS container agent data... ok
+Trying to collect Docker daemon logs... ok
+Trying to get network information... ok
+Trying to archive gathered log information... ok
 ```
 
 ### Example output in debug mode
@@ -68,6 +71,7 @@ ok
 Trying to enable ecs agent debug mode... Trying to restart ECS agent to enable debug mode... stop: Unknown instance:
 ecs start/running, process 13188
 ok
+Trying to get network information... ok
 Trying to pack gathered info... ok
 ```
 
