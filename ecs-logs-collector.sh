@@ -155,6 +155,7 @@ collect_brief() {
   is_diskfull
   get_sysinfo
   get_common_logs
+  get_kernel_logs
   get_mounts_info
   get_selinux_info
   get_iptables_info
@@ -281,11 +282,23 @@ get_common_logs()
   dstdir="${info_system}/var_log"
   mkdir -p ${dstdir}
 
-  for entry in syslog messages dmesg; do
+  for entry in syslog messages; do
     [ -e "/var/log/${entry}" ] && cp -fR /var/log/${entry} ${dstdir}/
   done
 
   ok
+}
+
+get_kernel_logs()
+{
+    try "collect kernel logs"
+    dstdir="${info_system}/kernel"
+    mkdir -p "$dstdir"
+    if [ -e "/var/log/dmesg" ]; then
+	cp -f /var/log/dmesg "$dstdir/dmesg.boot"
+    fi
+    dmesg > "$dstdir/dmesg.current"
+    ok
 }
 
 get_docker_logs()
