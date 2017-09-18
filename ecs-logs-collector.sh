@@ -419,7 +419,7 @@ is_docker_healthy()
     fi
 
   else
-    die "The Docker daemon is not running."
+    warning "The Docker daemon is not running."
   fi
 }
 
@@ -427,20 +427,15 @@ get_docker_info()
 {
   try "gather Docker daemon information"
 
-  pgrep docker > /dev/null
-  if [[ "$?" -eq 0 ]]; then
-    mkdir -p ${info_system}/docker
+  mkdir -p ${info_system}/docker
 
-    docker info > ${info_system}/docker/docker-info.txt 2>&1
-    docker ps --all --no-trunc > ${info_system}/docker/docker-ps.txt 2>&1
-    docker images > ${info_system}/docker/docker-images.txt 2>&1
-    docker version > ${info_system}/docker/docker-version.txt 2>&1
+  docker info > ${info_system}/docker/docker-info.txt 2>&1
+  docker ps --all --no-trunc > ${info_system}/docker/docker-ps.txt 2>&1
+  docker images > ${info_system}/docker/docker-images.txt 2>&1
+  docker version > ${info_system}/docker/docker-version.txt 2>&1
 
-    ok
+  ok
 
-  else
-    die "The Docker daemon is not running."
-  fi
 }
 
 get_containers_info()
@@ -477,7 +472,7 @@ get_containers_info()
     ok
 
   else
-    die "The Amazon ECS container agent is not running."
+    warning "The Amazon ECS container agent is not running."
   fi
 }
 
