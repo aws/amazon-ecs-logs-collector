@@ -458,24 +458,24 @@ get_containers_info()
 get_agent_info()
 {
   try "gather Amazon ECS container agent data"
-  pgrep agent > /dev/null
+  mkdir -p ${info_system}/docker
 
+  if [ -e /var/lib/ecs/data/ecs_agent_data.json ]; then
+    cat  /var/lib/ecs/data/ecs_agent_data.json | python -mjson.tool > ${info_system}/ecs-agent/ecs_agent_data.txt 2>&1
+  fi
+
+  if [ -e /etc/ecs/ecs.config ]; then
+    cp -f /etc/ecs/ecs.config ${info_system}/ecs-agent/ 2>&1
+    if grep --quiet "ECS_ENGINE_AUTH_DATA" ${info_system}/ecs-agent/ecs.config; then
+      sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' ${info_system}/ecs-agent/ecs.config
+    fi
+  fi
+
+  pgrep agent > /dev/null
   if [[ "$?" -eq 0 ]]; then
-    mkdir -p ${info_system}/docker
 
     if [ -e /usr/bin/curl ]; then
       curl -s http://localhost:51678/v1/tasks | python -mjson.tool > ${info_system}/ecs-agent/agent-running-info.txt 2>&1
-    fi
-
-    if [ -e /var/lib/ecs/data/ecs_agent_data.json ]; then
-      cat  /var/lib/ecs/data/ecs_agent_data.json | python -mjson.tool > ${info_system}/ecs-agent/ecs_agent_data.txt 2>&1
-    fi
-
-    if [ -e /etc/ecs/ecs.config ]; then
-      cp -f /etc/ecs/ecs.config ${info_system}/ecs-agent/ 2>&1
-      if grep --quiet "ECS_ENGINE_AUTH_DATA" ${info_system}/ecs-agent/ecs.config; then
-        sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' ${info_system}/ecs-agent/ecs.config
-      fi
     fi
 
     ok
