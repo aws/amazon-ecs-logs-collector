@@ -163,6 +163,7 @@ collect_brief() {
   get_ecs_agent_logs
   get_ecs_init_logs
   get_docker_logs
+  get_agent_info
   
   is_docker_healthy
   if [[ "$?" -eq 0 ]]; then
@@ -414,12 +415,12 @@ is_docker_healthy()
         return 0
 
       else
-        die "The Docker API is not responding"
+        warning "The Docker API is not responding. Some info will be unavailable."
       fi
     fi
 
   else
-    warning "The Docker daemon is not running."
+    warning "The Docker daemon is not running. Some info will be unavailable."
   fi
 }
 
@@ -440,19 +441,27 @@ get_docker_info()
 
 get_containers_info()
 {
-  try "inspect running Docker containers and gather Amazon ECS container agent data"
+  try "inspect running Docker containers"
+  mkdir -p ${info_system}/docker
+
+  for i in `docker ps |awk '{print $1}'|grep -v CONTAINER`; do
+    docker inspect $i > $info_system/docker/container-$i.txt 2>&1
+    if grep --quiet "ECS_ENGINE_AUTH_DATA" $info_system/docker/container-$i.txt; then
+      sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' $info_system/docker/container-$i.txt
+    fi
+  done
+
+    ok
+
+}
+
+get_agent_info()
+{
+  try "gather Amazon ECS container agent data"
   pgrep agent > /dev/null
 
   if [[ "$?" -eq 0 ]]; then
     mkdir -p ${info_system}/docker
-
-    for i in `docker ps |awk '{print $1}'|grep -v CONTAINER`;
-      do docker inspect $i > $info_system/docker/container-$i.txt 2>&1
-        if grep --quiet "ECS_ENGINE_AUTH_DATA" $info_system/docker/container-$i.txt; then
-          sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' $info_system/docker/container-$i.txt
-        fi
-      done
-
 
     if [ -e /usr/bin/curl ]; then
       curl -s http://localhost:51678/v1/tasks | python -mjson.tool > ${info_system}/ecs-agent/agent-running-info.txt 2>&1
@@ -472,9 +481,10 @@ get_containers_info()
     ok
 
   else
-    warning "The Amazon ECS container agent is not running."
+    warning "The Amazon ECS container agent is not running. Some info will be unavailable."
   fi
 }
+
 
 enable_docker_debug()
 {
