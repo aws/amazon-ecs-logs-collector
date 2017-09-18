@@ -160,11 +160,15 @@ collect_brief() {
   get_iptables_info
   get_pkglist
   get_system_services
-  get_docker_info
   get_ecs_agent_logs
   get_ecs_init_logs
-  get_containers_info
   get_docker_logs
+  
+  is_docker_healthy
+  if [[ "$?" -eq 0 ]]; then
+    get_docker_info
+    get_containers_info
+  fi
 }
 
 collect_debug() {
@@ -393,6 +397,30 @@ get_system_services()
   netstat -plant > ${info_system}/netstat.txt 2>&1
 
   ok
+}
+
+is_docker_healthy()
+{
+  try "Checking if Docker is running"
+  pgrep docker > /dev/null
+  if [[ "$?" -eq 0 ]]; then
+    ok
+
+    if [ -e /usr/bin/curl ]; then
+      try "Checking if Docker API is responding"
+      result=`curl  -S -m 60 --unix-socket /var/run/docker.sock http://localhost/_ping 2>&1`
+      if [[ "$?" -eq 0 ]]; then
+        ok
+        return 0
+
+      else
+        die "The Docker API is not responding"
+      fi
+    fi
+
+  else
+    die "The Docker daemon is not running."
+  fi
 }
 
 get_docker_info()
