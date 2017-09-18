@@ -416,11 +416,13 @@ is_docker_healthy()
 
       else
         warning "The Docker API is not responding. Some info will be unavailable."
+        return 2
       fi
     fi
 
   else
     warning "The Docker daemon is not running. Some info will be unavailable."
+    return 1
   fi
 }
 
