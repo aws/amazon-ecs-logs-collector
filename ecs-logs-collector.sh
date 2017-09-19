@@ -409,14 +409,16 @@ is_docker_healthy()
 
     if [ -e /usr/bin/curl ]; then
       try "Checking if Docker API is responding"
-      result=`curl  -S -m 60 --unix-socket /var/run/docker.sock http://localhost/_ping 2>&1`
+      result=`curl -s -m 60 --unix-socket /var/run/docker.sock http://localhost/_ping 2>&1`
       if [[ "$?" -eq 0 ]]; then
         
-        if [[ $result -eq "OK"]]; then
+        if [[ "$result" = "OK" ]]; then
           ok
           return 0
         else
           warning "The Docker API did not respond with OK. Some info will be unavailable."
+          echo "API output was:"
+          echo $result
           return 3
         fi
       else
