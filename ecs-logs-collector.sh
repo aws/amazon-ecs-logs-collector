@@ -402,13 +402,13 @@ get_system_services()
 
 is_docker_healthy()
 {
-  try "Checking if Docker is running"
+  try "confirm that Docker is running"
   pgrep docker > /dev/null
   if [[ "$?" -eq 0 ]]; then
     ok
 
-    if [ -e /usr/bin/curl ]; then
-      try "Checking if Docker API is responding"
+    if [ `which curl` ]; then
+      try "get a response from the Docker API"
       result=`curl -s -m 60 --unix-socket /var/run/docker.sock http://localhost/_ping 2>&1`
       if [[ "$?" -eq 0 ]]; then
         
@@ -416,14 +416,12 @@ is_docker_healthy()
           ok
           return 0
         else
-          warning "The Docker API did not respond with OK. Some info will be unavailable."
-          echo "API output was:"
-          echo $result
-          return 3
+          warning "The Docker API responded with $result. Some info will be unavailable."
+          return 1
         fi
       else
         warning "The Docker API is not responding. Some info will be unavailable."
-        return 2
+        return 126
       fi
     fi
 
