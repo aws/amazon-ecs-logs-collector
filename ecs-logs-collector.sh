@@ -356,7 +356,7 @@ get_ecs_init_logs()
   dstdir="${info_system}/ecs-init"
 
   mkdir -p ${dstdir}
-  for entry in ecs-init.log.*; do
+  for entry in ecs-init.log*; do
     cp -fR /var/log/ecs/${entry} ${dstdir}/
   done
 
