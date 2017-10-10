@@ -167,11 +167,16 @@ collect_brief() {
   get_iptables_info
   get_pkglist
   get_system_services
-  get_docker_info
   get_ecs_agent_logs
   get_ecs_init_logs
-  get_containers_info
   get_docker_logs
+  get_agent_info
+  
+  is_docker_healthy
+  if [[ "$?" -eq 0 ]]; then
+    get_docker_info
+    get_containers_info
+  fi
 }
 
 enable_debug() {
@@ -414,63 +419,103 @@ get_system_services()
   ok
 }
 
+is_docker_healthy()
+{
+  try "confirm that Docker is running"
+  pgrep docker > /dev/null
+  if [[ "$?" -eq 0 ]]; then
+    ok
+
+    if [ `which curl` ]; then
+      try "get a response from the Docker API"
+      result=`curl -s -m 60 --unix-socket /var/run/docker.sock http://localhost/_ping 2>&1`
+      if [[ "$?" -eq 0 ]]; then
+        
+        if [[ "$result" = "OK" ]]; then
+          ok
+          return 0
+        else
+          warning "The Docker API responded with $result. Some info will be unavailable."
+          return 1
+        fi
+      else
+        warning "The Docker API is not responding. Some info will be unavailable."
+        return 126
+      fi
+    else
+        warning "Curl is needed in order to test Docker API. Continuing with normal tests."
+        return 0
+    fi
+
+  else
+    warning "The Docker daemon is not running. Some info will be unavailable."
+    return 1
+  fi
+}
+
 get_docker_info()
 {
   try "gather Docker daemon information"
 
-  pgrep docker > /dev/null
-  if [[ "$?" -eq 0 ]]; then
-    mkdir -p ${info_system}/docker
+  mkdir -p ${info_system}/docker
 
-    docker info > ${info_system}/docker/docker-info.txt 2>&1
-    docker ps --all --no-trunc > ${info_system}/docker/docker-ps.txt 2>&1
-    docker images > ${info_system}/docker/docker-images.txt 2>&1
-    docker version > ${info_system}/docker/docker-version.txt 2>&1
+  docker info > ${info_system}/docker/docker-info.txt 2>&1
+  docker ps --all --no-trunc > ${info_system}/docker/docker-ps.txt 2>&1
+  docker images > ${info_system}/docker/docker-images.txt 2>&1
+  docker version > ${info_system}/docker/docker-version.txt 2>&1
 
-    ok
+  ok
 
-  else
-    die "The Docker daemon is not running."
-  fi
 }
 
 get_containers_info()
 {
-  try "inspect running Docker containers and gather Amazon ECS container agent data"
+  try "inspect running Docker containers"
+  mkdir -p ${info_system}/docker
+
+  for i in `docker ps |awk '{print $1}'|grep -v CONTAINER`; do
+    docker inspect $i > $info_system/docker/container-$i.txt 2>&1
+    if grep --quiet "ECS_ENGINE_AUTH_DATA" $info_system/docker/container-$i.txt; then
+      sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' $info_system/docker/container-$i.txt
+    fi
+  done
+
+    ok
+
+}
+
+get_agent_info()
+{
+  try "gather Amazon ECS container agent data"
+  mkdir -p ${info_system}/docker
+
+  if [ -e /var/lib/ecs/data/ecs_agent_data.json ]; then
+    cat  /var/lib/ecs/data/ecs_agent_data.json | python -mjson.tool > ${info_system}/ecs-agent/ecs_agent_data.txt 2>&1
+  fi
+
+  if [ -e /etc/ecs/ecs.config ]; then
+    cp -f /etc/ecs/ecs.config ${info_system}/ecs-agent/ 2>&1
+    if grep --quiet "ECS_ENGINE_AUTH_DATA" ${info_system}/ecs-agent/ecs.config; then
+      sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' ${info_system}/ecs-agent/ecs.config
+    fi
+  fi
+
   pgrep agent > /dev/null
-
   if [[ "$?" -eq 0 ]]; then
-    mkdir -p ${info_system}/docker
 
-    for i in `docker ps |awk '{print $1}'|grep -v CONTAINER`;
-      do docker inspect $i > $info_system/docker/container-$i.txt 2>&1
-        if grep --quiet "ECS_ENGINE_AUTH_DATA" $info_system/docker/container-$i.txt; then
-          sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' $info_system/docker/container-$i.txt
-        fi
-      done
-
-
-    if [ -e /usr/bin/curl ]; then
+    if [ `which curl` ]; then
       curl -s http://localhost:51678/v1/tasks | python -mjson.tool > ${info_system}/ecs-agent/agent-running-info.txt 2>&1
-    fi
-
-    if [ -e /var/lib/ecs/data/ecs_agent_data.json ]; then
-      cat  /var/lib/ecs/data/ecs_agent_data.json | python -mjson.tool > ${info_system}/ecs-agent/ecs_agent_data.txt 2>&1
-    fi
-
-    if [ -e /etc/ecs/ecs.config ]; then
-      cp -f /etc/ecs/ecs.config ${info_system}/ecs-agent/ 2>&1
-      if grep --quiet "ECS_ENGINE_AUTH_DATA" ${info_system}/ecs-agent/ecs.config; then
-        sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' ${info_system}/ecs-agent/ecs.config
-      fi
+    else
+      warning "Curl is required to gather information from the ECS Agent. Some info will be unavailable."
     fi
 
     ok
 
   else
-    die "The Amazon ECS container agent is not running."
+    warning "The Amazon ECS container agent is not running. Some info will be unavailable."
   fi
 }
+
 
 enable_docker_debug()
 {
