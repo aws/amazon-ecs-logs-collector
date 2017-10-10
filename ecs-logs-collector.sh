@@ -423,6 +423,9 @@ is_docker_healthy()
         warning "The Docker API is not responding. Some info will be unavailable."
         return 126
       fi
+    else
+        warning "Curl is needed in order to test Docker API. Continuing with normal tests."
+        return 0
     fi
 
   else
@@ -481,8 +484,10 @@ get_agent_info()
   pgrep agent > /dev/null
   if [[ "$?" -eq 0 ]]; then
 
-    if [ -e /usr/bin/curl ]; then
+    if [ `which curl` ]; then
       curl -s http://localhost:51678/v1/tasks | python -mjson.tool > ${info_system}/ecs-agent/agent-running-info.txt 2>&1
+    else
+      warning "Curl is required to gather information from the ECS Agent. Some info will be unavailable."
     fi
 
     ok
