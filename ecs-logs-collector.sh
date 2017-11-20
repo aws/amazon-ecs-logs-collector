@@ -172,6 +172,7 @@ collect_brief() {
   get_ecs_init_logs
   get_containers_info
   get_docker_logs
+  get_netns
 }
 
 enable_debug() {
@@ -196,6 +197,22 @@ pack()
 
 # Routines
 # ---------------------------------------------------------------------------------------
+get_netns()
+{
+  try "get network namespaces info"
+  mkdir -p ${info_system}
+  nsprefix="/var/run/docker/netns/"
+
+  # network namespace id to container mapping can be found under NetworkSettings.Sandbox* in docker inspect output
+  netns="`ls -1 ${nsprefix} | grep -v default`"
+  for ns in ${netns}; do
+    nsenter --net=${nsprefix}/${ns} netstat -plant > ${info_system}/netstat-${ns}.txt 2>&1
+    nsenter --net=${nsprefix}/${ns} ifconfig       > ${info_system}/ifconfig-${ns}.txt 2>&1
+    nsenter --net=${nsprefix}/${ns} route -nv      > ${info_system}/route-${ns}.txt 2>&1
+  done
+
+  ok
+}
 
 get_sysinfo()
 {
@@ -410,6 +427,8 @@ get_system_services()
   top -b -n 1 > ${info_system}/top.txt 2>&1
   ps fauxwww > ${info_system}/ps.txt 2>&1
   netstat -plant > ${info_system}/netstat.txt 2>&1
+  ifconfig > ${info_system}/ifconfig.txt 2>&1
+  route -nv > ${info_system}/route.txt 2>&1
 
   ok
 }
