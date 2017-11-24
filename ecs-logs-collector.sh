@@ -198,6 +198,7 @@ collect_brief() {
   get_docker_info
   get_docker_containers_info
   get_docker_logs
+  get_docker_config
   get_ecs_agent_logs
   get_ecs_agent_info
   get_ecs_init_logs
@@ -360,6 +361,41 @@ get_docker_logs() {
   esac
 
   ok
+}
+
+get_docker_config() {
+  try "collect system's Docker configuration"
+  dstdir="${info_system}/docker_config"
+  mkdir -p "${dstdir}"
+
+  # Find and collect system's supporting configuraton files.
+  for conf in /etc/sysconfig/docker /etc/sysconfig/docker-storage-setup /etc/default/docker; do
+    if [ -f "${conf}" ]; then
+      install -D "${conf}" "${dstdir}${conf}"
+    fi
+  done
+
+  # Collect the docker.service unit if the system is running systemd.
+  if command -v systemctl > /dev/null; then
+    try "collect docker.service systemd unit"
+    if systemctl cat docker.service > "${dstdir}/docker.service" 2>/dev/null; then
+      ok
+    else
+      # Otherwise remove systemctl's output if the unit doesn't exist.
+      rm "${dstdir}/docker.service"
+      failed "docker.service could not be retrieved"
+    fi
+  fi
+
+  # Collect docker daemon's native configuration dir
+  try "collect Docker daemon configuration"
+  if [ -d /etc/docker ]; then
+    mkdir -p "${dstdir}/etc/docker"
+    cp -r /etc/docker "${dstdir}/etc/docker"
+    ok
+  else
+    info "no daemon configuration present"
+  fi
 }
 
 get_ecs_agent_logs() {
