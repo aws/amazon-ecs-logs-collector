@@ -56,7 +56,7 @@ help()
   echo "                 Docker daemon and the Amazon ECS container agent."
   echo "     debug-only  Enables debug mode for the Docker daemon and the Amazon"
   echo "                 ECS container agent without collecting logs"
-  
+
 }
 
 parse_options()
@@ -263,8 +263,8 @@ get_selinux_info()
   enforced="`getenforce 2>/dev/null`"
 
   [ "${pkgtype}" != "rpm" -o -z "${enforced}" ] \
-        && info "not installed" \
-        && return
+    && info "not installed" \
+    && return
 
   mkdir -p ${info_system}
   echo -e "SELinux mode:\n    ${enforced}" >  ${info_system}/selinux.txt
@@ -297,14 +297,14 @@ get_common_logs()
 
 get_kernel_logs()
 {
-    try "collect kernel logs"
-    dstdir="${info_system}/kernel"
-    mkdir -p "$dstdir"
-    if [ -e "/var/log/dmesg" ]; then
-	cp -f /var/log/dmesg "$dstdir/dmesg.boot"
-    fi
-    dmesg > "$dstdir/dmesg.current"
-    ok
+  try "collect kernel logs"
+  dstdir="${info_system}/kernel"
+  mkdir -p "$dstdir"
+  if [ -e "/var/log/dmesg" ]; then
+    cp -f /var/log/dmesg "$dstdir/dmesg.boot"
+  fi
+  dmesg > "$dstdir/dmesg.current"
+  ok
 }
 
 get_docker_logs()
@@ -328,7 +328,7 @@ get_docker_logs()
       ;;
     ubuntu14)
       cp -f /var/log/upstart/docker* ${dstdir}
-    ;;
+      ;;
     *)
       warning "The current operating system is not supported."
       ;;
@@ -442,12 +442,12 @@ get_containers_info()
   if [[ "$?" -eq 0 ]]; then
     mkdir -p ${info_system}/docker
 
-    for i in `docker ps |awk '{print $1}'|grep -v CONTAINER`;
-      do docker inspect $i > $info_system/docker/container-$i.txt 2>&1
-        if grep --quiet "ECS_ENGINE_AUTH_DATA" $info_system/docker/container-$i.txt; then
-          sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' $info_system/docker/container-$i.txt
-        fi
-      done
+    for i in `docker ps |awk '{print $1}'|grep -v CONTAINER`; do
+      docker inspect $i > $info_system/docker/container-$i.txt 2>&1
+      if grep --quiet "ECS_ENGINE_AUTH_DATA" $info_system/docker/container-$i.txt; then
+        sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' $info_system/docker/container-$i.txt
+      fi
+    done
 
 
     if [ -e /usr/bin/curl ]; then
