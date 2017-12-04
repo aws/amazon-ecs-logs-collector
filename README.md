@@ -20,6 +20,16 @@ Run this project as the root user:
 # bash ecs-logs-collector.sh
 ```
 
+Confirm if the tarball file was successfully created ( it can be .tgz or .tar.gz )
+
+```
+#ls collect.*
+collect.tgz
+```
+### Retrieving the logs
+
+Download the tarball using your favorite Secure Copy tool
+
 ## Example output
 The project can be used in normal or debug mode (for Amazon Linux only).
 
