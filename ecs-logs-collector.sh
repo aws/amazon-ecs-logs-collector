@@ -277,7 +277,8 @@ get_iptables_info()
   try "get iptables list"
 
   mkdir -p ${info_system}
-  /sbin/iptables -nvL -t nat  > ${info_system}/iptables.txt
+  /sbin/iptables -nvL -t filter > ${info_system}/iptables-filter.txt
+  /sbin/iptables -nvL -t nat  > ${info_system}/iptables-nat.txt
 
   ok
 }
