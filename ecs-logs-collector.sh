@@ -27,7 +27,8 @@ export LC_ALL="C"
 
 # Common options
 curdir="$(dirname $0)"
-infodir="${curdir}/collect"
+instanceid="$(hostname -f)"
+infodir="${curdir}/${instanceid}"
 info_system="${infodir}/system"
 
 # Global options
@@ -150,7 +151,7 @@ is_diskfull()
 cleanup()
 {
   rm -rf ${infodir} >/dev/null 2>&1
-  rm -f ${curdir}/collect.tgz
+  rm -f ${curdir}/collect.tar.gz
 }
 
 init() {
@@ -189,7 +190,7 @@ pack()
   [ -z "${tar_bin}" ] && warning "TAR archiver not found, please install a TAR archiver to create the collection archive. You can still view the logs in the collect folder."
 
   cd ${curdir}
-  ${tar_bin} -czf ${infodir}.tgz ${infodir} > /dev/null 2>&1
+  ${tar_bin} -czf ${infodir}.tar.gz ${infodir} > /dev/null 2>&1
 
   ok
 }
