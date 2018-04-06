@@ -196,7 +196,6 @@ pack()
 
 # Routines
 # ---------------------------------------------------------------------------------------
-
 get_sysinfo()
 {
   try "collect system information"
@@ -419,19 +418,19 @@ get_docker_info()
 {
   try "gather Docker daemon information"
 
-  pgrep docker > /dev/null
+  pgrep dockerd > /dev/null
   if [[ "$?" -eq 0 ]]; then
     mkdir -p ${info_system}/docker
 
-    docker info > ${info_system}/docker/docker-info.txt 2>&1
-    docker ps --all --no-trunc > ${info_system}/docker/docker-ps.txt 2>&1
-    docker images > ${info_system}/docker/docker-images.txt 2>&1
-    docker version > ${info_system}/docker/docker-version.txt 2>&1
+    timeout 20 docker info > ${info_system}/docker/docker-info.txt 2>&1 || echo "Timed out, ignoring \"docker info output \" "
+    timeout 20 docker ps --all --no-trunc > ${info_system}/docker/docker-ps.txt 2>&1 || echo "Timed out, ignoring \"docker ps --all --no-truc output \" "
+    timeout 20 docker images > ${info_system}/docker/docker-images.txt 2>&1 || echo "Timed out, ignoring \"docker images output \" "
+    timeout 20 docker version > ${info_system}/docker/docker-version.txt 2>&1 || echo "Timed out, ignoring \"docker version output \" "
 
     ok
 
   else
-    die "The Docker daemon is not running."
+    echo "WARNING: The Docker daemon is not running." | tee ${info_system}/docker/docker-not-running.txt
   fi
 }
 
@@ -443,7 +442,7 @@ get_containers_info()
   if [[ "$?" -eq 0 ]]; then
     mkdir -p ${info_system}/docker
 
-    for i in `docker ps |awk '{print $1}'|grep -v CONTAINER`; do
+    for i in `docker ps -q`; do
       docker inspect $i > $info_system/docker/container-$i.txt 2>&1
       if grep --quiet "ECS_ENGINE_AUTH_DATA" $info_system/docker/container-$i.txt; then
         sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' $info_system/docker/container-$i.txt
@@ -469,7 +468,7 @@ get_containers_info()
     ok
 
   else
-    die "The Amazon ECS container agent is not running."
+    echo "WARNING: The Amazon ECS container agent is not running." | tee ${info_system}/ecs-agent/ecs-agent-not-running.txt
   fi
 }
 
