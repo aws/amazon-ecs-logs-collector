@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
-# Copyright 2016-2017 Amazon.com, Inc. or its affiliates.
+# Copyright 2016-2018 Amazon.com, Inc. or its affiliates.
 # All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -34,13 +34,13 @@ info_system="${infodir}/system"
 pkgtype=''  # defined in get_sysinfo
 os_name=''  # defined in get_sysinfo
 progname='' # defined in parse_options
+mode='brief' # defined in parse_options
 
 
 # Common functions
 # ---------------------------------------------------------------------------------------
 
-help()
-{
+help() {
   echo "USAGE: ${progname} [--mode=[brief|debug]]"
   echo "       ${progname} --help"
   echo ""
@@ -59,8 +59,7 @@ help()
 
 }
 
-parse_options()
-{
+parse_options() {
   local count="$#"
 
   progname="$0"
@@ -85,39 +84,32 @@ parse_options()
   done
 }
 
-ok()
-{
+ok() {
   echo "ok"
 }
 
-info()
-{
+info() {
   echo "$*"
 }
 
-try()
-{
+try() {
   echo -n "Trying to $*... "
 }
 
-warning()
-{
+warning() {
   echo "Warning $*.. "
 }
 
-fail()
-{
+fail() {
   echo "failed"
 }
 
-die()
-{
+die() {
   echo "ERROR: $*.. exiting..."
   exit 1
 }
 
-is_root()
-{
+is_root() {
   try "check if the script is running as root"
 
   if [[ "$(id -u)" != "0" ]]; then
@@ -128,8 +120,7 @@ is_root()
   ok
 }
 
-is_diskfull()
-{
+is_diskfull() {
   try "check disk space usage"
 
   threshold=70
@@ -147,8 +138,7 @@ is_diskfull()
   ok
 }
 
-cleanup()
-{
+cleanup() {
   rm -rf ${infodir} >/dev/null 2>&1
   rm -f ${curdir}/collect.tgz
 }
@@ -157,6 +147,7 @@ init() {
   is_root
   get_sysinfo
 }
+
 collect_brief() {
   init
   is_diskfull
@@ -180,8 +171,7 @@ enable_debug() {
   enable_ecs_agent_debug
 }
 
-pack()
-{
+pack() {
   try "archive gathered log information"
 
   local tar_bin
@@ -196,8 +186,7 @@ pack()
 
 # Routines
 # ---------------------------------------------------------------------------------------
-get_sysinfo()
-{
+get_sysinfo() {
   try "collect system information"
 
   res="`/bin/uname -m`"
@@ -238,8 +227,7 @@ get_sysinfo()
   ok
 }
 
-get_mounts_info()
-{
+get_mounts_info() {
   try "get mount points and volume information"
   mkdir -p ${info_system}
   mount > ${info_system}/mounts.txt
@@ -255,8 +243,7 @@ get_mounts_info()
   ok
 }
 
-get_selinux_info()
-{
+get_selinux_info() {
   try "check SELinux status"
 
   enforced="`getenforce 2>/dev/null`"
@@ -271,8 +258,7 @@ get_selinux_info()
   ok
 }
 
-get_iptables_info()
-{
+get_iptables_info() {
   try "get iptables list"
 
   mkdir -p ${info_system}
@@ -282,8 +268,7 @@ get_iptables_info()
   ok
 }
 
-get_common_logs()
-{
+get_common_logs() {
   try "collect common operating system logs"
   dstdir="${info_system}/var_log"
   mkdir -p ${dstdir}
@@ -295,8 +280,7 @@ get_common_logs()
   ok
 }
 
-get_kernel_logs()
-{
+get_kernel_logs() {
   try "collect kernel logs"
   dstdir="${info_system}/kernel"
   mkdir -p "$dstdir"
@@ -307,8 +291,7 @@ get_kernel_logs()
   ok
 }
 
-get_docker_logs()
-{
+get_docker_logs() {
   try "collect Docker daemon logs"
   dstdir="${info_system}/docker_log"
   mkdir -p ${dstdir}
@@ -337,8 +320,7 @@ get_docker_logs()
   ok
 }
 
-get_ecs_agent_logs()
-{
+get_ecs_agent_logs() {
   try "collect Amazon ECS container agent logs"
   dstdir="${info_system}/ecs-agent"
 
@@ -350,8 +332,7 @@ get_ecs_agent_logs()
   ok
 }
 
-get_ecs_init_logs()
-{
+get_ecs_init_logs() {
   try "collect Amazon ECS init logs"
   dstdir="${info_system}/ecs-init"
 
@@ -363,8 +344,7 @@ get_ecs_init_logs()
   ok
 }
 
-get_pkglist()
-{
+get_pkglist() {
   try "detect installed packages"
 
   mkdir -p ${info_system}
@@ -383,8 +363,7 @@ get_pkglist()
   ok
 }
 
-get_system_services()
-{
+get_system_services() {
   try "detect active system services list"
   mkdir -p ${info_system}
   case "${os_name}" in
@@ -414,8 +393,7 @@ get_system_services()
   ok
 }
 
-get_docker_info()
-{
+get_docker_info() {
   try "gather Docker daemon information"
 
   pgrep dockerd > /dev/null
@@ -434,11 +412,10 @@ get_docker_info()
   fi
 }
 
-get_containers_info()
-{
+get_containers_info() {
   try "inspect running Docker containers and gather Amazon ECS container agent data"
-  pgrep agent > /dev/null
 
+  pgrep agent > /dev/null
   if [[ "$?" -eq 0 ]]; then
     mkdir -p ${info_system}/docker
 
@@ -472,8 +449,7 @@ get_containers_info()
   fi
 }
 
-enable_docker_debug()
-{
+enable_docker_debug() {
   try "enable debug mode for the Docker daemon"
 
   case "${os_name}" in
@@ -501,8 +477,7 @@ enable_docker_debug()
   esac
 }
 
-enable_ecs_agent_debug()
-{
+enable_ecs_agent_debug() {
   try "enable debug mode for the Amazon ECS container agent"
 
   case "${os_name}" in
@@ -532,8 +507,6 @@ enable_ecs_agent_debug()
 # --------------------------------------------------------------------------------------------
 
 parse_options $*
-
-[ -z "${mode}" ] && mode="brief"
 
 case "${mode}" in
   brief)
