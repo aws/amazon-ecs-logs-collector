@@ -97,7 +97,7 @@ try() {
 }
 
 warning() {
-  echo "Warning $*.. "
+  echo "warning $*.. "
 }
 
 fail() {
@@ -164,10 +164,11 @@ collect_brief() {
   get_pkglist
   get_system_services
   get_docker_info
-  get_ecs_agent_logs
-  get_ecs_init_logs
-  get_containers_info
+  get_docker_containers_info
   get_docker_logs
+  get_ecs_agent_logs
+  get_ecs_agent_info
+  get_ecs_init_logs
 }
 
 enable_debug() {
@@ -416,8 +417,10 @@ get_docker_info() {
   fi
 }
 
-get_containers_info() {
-  try "collect ECS Agent engine state and config"
+get_ecs_agent_info() {
+  try "collect Amazon ECS Agent state and config"
+
+  mkdir -p ${info_system}/ecs-agent
   if [ -e /var/lib/ecs/data/ecs_agent_data.json ]; then
     cat  /var/lib/ecs/data/ecs_agent_data.json | python -mjson.tool > ${info_system}/ecs-agent/ecs_agent_data.txt 2>&1
   fi
@@ -430,19 +433,10 @@ get_containers_info() {
   fi
   ok
 
-  try "inspect running Docker containers and gather Amazon ECS container agent data"
+  try "collect Amazon ECS Agent engine data"
 
   pgrep agent > /dev/null
   if [[ "$?" -eq 0 ]]; then
-    mkdir -p ${info_system}/docker
-
-    for i in `docker ps -q`; do
-      docker inspect $i > $info_system/docker/container-$i.txt 2>&1
-      if grep --quiet "ECS_ENGINE_AUTH_DATA" $info_system/docker/container-$i.txt; then
-        sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' $info_system/docker/container-$i.txt
-      fi
-    done
-
     if [ -e /usr/bin/curl ]; then
       curl -s http://localhost:51678/v1/tasks | python -mjson.tool > ${info_system}/ecs-agent/agent-running-info.txt 2>&1
       ok
@@ -450,8 +444,24 @@ get_containers_info() {
       warning "/usr/bin/curl is unavailable for probing ECS Agent introspection endpoint"
     fi
   else
-    failed "The Amazon ECS container agent is not running." | tee ${info_system}/ecs-agent/ecs-agent-not-running.txt
+    failed "The Amazon ECS Agent is not running" | tee ${info_system}/ecs-agent/ecs-agent-not-running.txt
     return 1
+  fi
+}
+
+get_docker_containers_info() {
+  try "inspect all docker containers"
+
+  pgrep dockerd > /dev/null
+  if [[ "$?" -eq 0 ]]; then
+    mkdir -p ${info_system}/docker
+
+    for i in `docker ps -a -q`; do
+      docker inspect $i > $info_system/docker/container-$i.txt 2>&1
+      if grep --quiet "ECS_ENGINE_AUTH_DATA" $info_system/docker/container-$i.txt; then
+        sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' $info_system/docker/container-$i.txt
+      fi
+    done
   fi
 }
 
