@@ -159,7 +159,30 @@ cleanup() {
 
 init() {
   is_root
+  try_set_instance_infodir
   get_sysinfo
+}
+
+try_set_instance_infodir() {
+  try "resolve instance-id"
+
+  if command -v curl > /dev/null; then
+    instance_id=$(curl -s -m 3 http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
+    if [[ -n "$instance_id" ]]; then
+      # Put logs into a directory for this instance.
+      infodir="${infodir}/${instance_id}"
+      info_system="${infodir}/system"
+      echo "$instance_id" | $info_system/instance-id.txt
+    else
+      warning "unable to resolve instance metadata"
+      return 1
+    fi
+  else
+    warning "curl is unavailable for querying"
+    return 1
+  fi
+
+  ok
 }
 
 collect_brief() {
