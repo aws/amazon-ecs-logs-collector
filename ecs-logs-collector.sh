@@ -249,10 +249,10 @@ get_mounts_info() {
   echo "" >> ${info_system}/mounts.txt
   df -h >> ${info_system}/mounts.txt
 
-  if [ -e /sbin/lvs ]; then
-    lvs > ${info_system}/lvs.txt
-    pvs > ${info_system}/pvs.txt
-    vgs > ${info_system}/vgs.txt
+  if command -v lvdisplay > /dev/null; then
+    lvdisplay > ${info_system}/lvdisplay.txt
+    vgdisplay > ${info_system}/vgdisplay.txt
+    pvdisplay > ${info_system}/pvdisplay.txt
   fi
 
   ok
