@@ -485,11 +485,11 @@ get_ecs_agent_info() {
 
   pgrep agent > /dev/null
   if [[ "$?" -eq 0 ]]; then
-    if [ -e /usr/bin/curl ]; then
+    if command -v curl >/dev/null; then
       curl -s http://localhost:51678/v1/tasks | python -mjson.tool > ${info_system}/ecs-agent/agent-running-info.txt 2>&1
       ok
     else
-      warning "/usr/bin/curl is unavailable for probing ECS Container Agent introspection endpoint"
+      warning "curl is unavailable for probing ECS Container Agent introspection endpoint"
     fi
   else
     warning "The Amazon ECS Container Agent is not running" | tee ${info_system}/ecs-agent/ecs-agent-not-running.txt
