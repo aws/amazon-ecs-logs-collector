@@ -104,6 +104,11 @@ fail() {
   echo "failed"
 }
 
+failed() {
+  local reason=$1
+  echo "failed: $reason"
+}
+
 die() {
   echo "ERROR: $*.. exiting..."
   exit 1
@@ -406,13 +411,25 @@ get_docker_info() {
     timeout 20 docker version > ${info_system}/docker/docker-version.txt 2>&1 || echo "Timed out, ignoring \"docker version output \" "
 
     ok
-
   else
-    echo "WARNING: The Docker daemon is not running." | tee ${info_system}/docker/docker-not-running.txt
+    warning "The Docker daemon is not running." | tee ${info_system}/docker/docker-not-running.txt
   fi
 }
 
 get_containers_info() {
+  try "collect ECS Agent engine state and config"
+  if [ -e /var/lib/ecs/data/ecs_agent_data.json ]; then
+    cat  /var/lib/ecs/data/ecs_agent_data.json | python -mjson.tool > ${info_system}/ecs-agent/ecs_agent_data.txt 2>&1
+  fi
+
+  if [ -e /etc/ecs/ecs.config ]; then
+    cp -f /etc/ecs/ecs.config ${info_system}/ecs-agent/ 2>&1
+    if grep --quiet "ECS_ENGINE_AUTH_DATA" ${info_system}/ecs-agent/ecs.config; then
+      sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' ${info_system}/ecs-agent/ecs.config
+    fi
+  fi
+  ok
+
   try "inspect running Docker containers and gather Amazon ECS container agent data"
 
   pgrep agent > /dev/null
@@ -426,26 +443,15 @@ get_containers_info() {
       fi
     done
 
-
     if [ -e /usr/bin/curl ]; then
       curl -s http://localhost:51678/v1/tasks | python -mjson.tool > ${info_system}/ecs-agent/agent-running-info.txt 2>&1
+      ok
+    else
+      warning "/usr/bin/curl is unavailable for probing ECS Agent introspection endpoint"
     fi
-
-    if [ -e /var/lib/ecs/data/ecs_agent_data.json ]; then
-      cat  /var/lib/ecs/data/ecs_agent_data.json | python -mjson.tool > ${info_system}/ecs-agent/ecs_agent_data.txt 2>&1
-    fi
-
-    if [ -e /etc/ecs/ecs.config ]; then
-      cp -f /etc/ecs/ecs.config ${info_system}/ecs-agent/ 2>&1
-      if grep --quiet "ECS_ENGINE_AUTH_DATA" ${info_system}/ecs-agent/ecs.config; then
-        sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' ${info_system}/ecs-agent/ecs.config
-      fi
-    fi
-
-    ok
-
   else
-    echo "WARNING: The Amazon ECS container agent is not running." | tee ${info_system}/ecs-agent/ecs-agent-not-running.txt
+    failed "The Amazon ECS container agent is not running." | tee ${info_system}/ecs-agent/ecs-agent-not-running.txt
+    return 1
   fi
 }
 
