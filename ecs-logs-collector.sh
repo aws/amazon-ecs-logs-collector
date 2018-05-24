@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
-# Copyright 2016-2017 Amazon.com, Inc. or its affiliates.
+# Copyright 2016-2018 Amazon.com, Inc. or its affiliates.
 # All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -15,11 +15,11 @@
 # specific language governing permissions and limitations under the License.
 #
 #
-# - Collects Docker daemon and Amazon ECS container agent logs on Amazon Linux,
+# - Collects Docker daemon and Amazon ECS Container Agent logs on Amazon Linux,
 #   Redhat 7, Debian 8.
 # - Collects general operating system logs.
 # - Optional ability to enable debug mode for the Docker daemon and Amazon ECS
-#   container agent on Amazon Linux variants, such as the Amazon ECS-optimized
+#   Container Agent on Amazon Linux variants, such as the Amazon ECS-optimized
 #   AMI. For usage information, see --help.
 
 export LANG="C"
@@ -34,13 +34,13 @@ info_system="${infodir}/system"
 pkgtype=''  # defined in get_sysinfo
 os_name=''  # defined in get_sysinfo
 progname='' # defined in parse_options
+mode='brief' # defined in parse_options
 
 
 # Common functions
 # ---------------------------------------------------------------------------------------
 
-help()
-{
+help() {
   echo "USAGE: ${progname} [--mode=[brief|debug]]"
   echo "       ${progname} --help"
   echo ""
@@ -51,16 +51,15 @@ help()
   echo ""
   echo "MODES:"
   echo "     brief       Gathers basic operating system, Docker daemon, and Amazon"
-  echo "                 ECS container agent logs. This is the default mode."
+  echo "                 ECS Container Agent logs. This is the default mode."
   echo "     debug       Collects 'brief' logs and also enables debug mode for the"
-  echo "                 Docker daemon and the Amazon ECS container agent."
+  echo "                 Docker daemon and the Amazon ECS Container Agent."
   echo "     debug-only  Enables debug mode for the Docker daemon and the Amazon"
-  echo "                 ECS container agent without collecting logs"
+  echo "                 ECS Container Agent without collecting logs"
 
 }
 
-parse_options()
-{
+parse_options() {
   local count="$#"
 
   progname="$0"
@@ -85,39 +84,39 @@ parse_options()
   done
 }
 
-ok()
-{
+ok() {
   echo "ok"
 }
 
-info()
-{
+info() {
   echo "$*"
 }
 
-try()
-{
-  echo -n "Trying to $*... "
+try() {
+  local action=$@
+  echo -n "Trying to $action ... "
 }
 
-warning()
-{
-  echo "Warning $*.. "
+warning() {
+  local reason=$@
+  echo "warning: $reason"
 }
 
-fail()
-{
+fail() {
   echo "failed"
 }
 
-die()
-{
+failed() {
+  local reason=$@
+  echo "failed: $reason"
+}
+
+die() {
   echo "ERROR: $*.. exiting..."
   exit 1
 }
 
-is_root()
-{
+is_root() {
   try "check if the script is running as root"
 
   if [[ "$(id -u)" != "0" ]]; then
@@ -128,35 +127,64 @@ is_root()
   ok
 }
 
-is_diskfull()
-{
+is_diskfull() {
   try "check disk space usage"
 
   threshold=70
   i=2
   result=`df -kh |grep -v "Filesystem" | awk '{ print $5 }' | sed 's/%//g'`
+  exceeded=0
 
   for percent in ${result}; do
     if [[ "${percent}" -gt "${threshold}" ]]; then
       partition=`df -kh | head -$i | tail -1| awk '{print $1}'`
+      echo
       warning "${partition} is ${percent}% full, please ensure adequate disk space to collect and store the log files."
+      : $((exceeded++))
     fi
     let i=$i+1
   done
 
-  ok
+  if [ "$exceeded" -gt 0 ]; then
+    return 1
+  else
+    ok
+  fi
 }
 
-cleanup()
-{
+cleanup() {
   rm -rf ${infodir} >/dev/null 2>&1
   rm -f ${curdir}/collect.tgz
 }
 
 init() {
   is_root
+  try_set_instance_infodir
   get_sysinfo
 }
+
+try_set_instance_infodir() {
+  try "resolve instance-id"
+
+  if command -v curl > /dev/null; then
+    instance_id=$(curl -s -m 3 http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
+    if [[ -n "$instance_id" ]]; then
+      # Put logs into a directory for this instance.
+      infodir="${infodir}/${instance_id}"
+      info_system="${infodir}/system"
+      echo "$instance_id" | $info_system/instance-id.txt
+    else
+      warning "unable to resolve instance metadata"
+      return 1
+    fi
+  else
+    warning "curl is unavailable for querying"
+    return 1
+  fi
+
+  ok
+}
+
 collect_brief() {
   init
   is_diskfull
@@ -168,10 +196,11 @@ collect_brief() {
   get_pkglist
   get_system_services
   get_docker_info
-  get_ecs_agent_logs
-  get_ecs_init_logs
-  get_containers_info
+  get_docker_containers_info
   get_docker_logs
+  get_ecs_agent_logs
+  get_ecs_agent_info
+  get_ecs_init_logs
 }
 
 enable_debug() {
@@ -180,8 +209,7 @@ enable_debug() {
   enable_ecs_agent_debug
 }
 
-pack()
-{
+pack() {
   try "archive gathered log information"
 
   local tar_bin
@@ -196,8 +224,7 @@ pack()
 
 # Routines
 # ---------------------------------------------------------------------------------------
-get_sysinfo()
-{
+get_sysinfo() {
   try "collect system information"
 
   res="`/bin/uname -m`"
@@ -235,28 +262,29 @@ get_sysinfo()
       ;;
   esac
 
+  mkdir -p ${info_system}
+  last > ${info_system}/last.txt
+
   ok
 }
 
-get_mounts_info()
-{
+get_mounts_info() {
   try "get mount points and volume information"
   mkdir -p ${info_system}
   mount > ${info_system}/mounts.txt
   echo "" >> ${info_system}/mounts.txt
   df -h >> ${info_system}/mounts.txt
 
-  if [ -e /sbin/lvs ]; then
-    lvs > ${info_system}/lvs.txt
-    pvs > ${info_system}/pvs.txt
-    vgs > ${info_system}/vgs.txt
+  if command -v lvdisplay > /dev/null; then
+    lvdisplay > ${info_system}/lvdisplay.txt
+    vgdisplay > ${info_system}/vgdisplay.txt
+    pvdisplay > ${info_system}/pvdisplay.txt
   fi
 
   ok
 }
 
-get_selinux_info()
-{
+get_selinux_info() {
   try "check SELinux status"
 
   enforced="`getenforce 2>/dev/null`"
@@ -271,8 +299,7 @@ get_selinux_info()
   ok
 }
 
-get_iptables_info()
-{
+get_iptables_info() {
   try "get iptables list"
 
   mkdir -p ${info_system}
@@ -282,8 +309,7 @@ get_iptables_info()
   ok
 }
 
-get_common_logs()
-{
+get_common_logs() {
   try "collect common operating system logs"
   dstdir="${info_system}/var_log"
   mkdir -p ${dstdir}
@@ -295,8 +321,7 @@ get_common_logs()
   ok
 }
 
-get_kernel_logs()
-{
+get_kernel_logs() {
   try "collect kernel logs"
   dstdir="${info_system}/kernel"
   mkdir -p "$dstdir"
@@ -307,8 +332,7 @@ get_kernel_logs()
   ok
 }
 
-get_docker_logs()
-{
+get_docker_logs() {
   try "collect Docker daemon logs"
   dstdir="${info_system}/docker_log"
   mkdir -p ${dstdir}
@@ -331,16 +355,21 @@ get_docker_logs()
       ;;
     *)
       warning "The current operating system is not supported."
+      return 1
       ;;
   esac
 
   ok
 }
 
-get_ecs_agent_logs()
-{
-  try "collect Amazon ECS container agent logs"
+get_ecs_agent_logs() {
+  try "collect Amazon ECS Container Agent logs"
   dstdir="${info_system}/ecs-agent"
+
+  if [ ! -d /var/log/ecs ]; then
+    failed "ECS log directory does not exist"
+    return 1
+  fi
 
   mkdir -p ${dstdir}
   for entry in ecs-agent.log*; do
@@ -350,10 +379,14 @@ get_ecs_agent_logs()
   ok
 }
 
-get_ecs_init_logs()
-{
+get_ecs_init_logs() {
   try "collect Amazon ECS init logs"
   dstdir="${info_system}/ecs-init"
+
+  if [ ! -d /var/log/ecs ]; then
+    failed "ECS log directory does not exist"
+    return 1
+  fi
 
   mkdir -p ${dstdir}
   for entry in ecs-init.log*; do
@@ -363,8 +396,7 @@ get_ecs_init_logs()
   ok
 }
 
-get_pkglist()
-{
+get_pkglist() {
   try "detect installed packages"
 
   mkdir -p ${info_system}
@@ -376,15 +408,15 @@ get_pkglist()
       dpkg --list > ${info_system}/pkglist.txt 2>&1
       ;;
     *)
-      warning "Unknown package type."
+      warning "unknown package type."
+      return 1
       ;;
   esac
 
   ok
 }
 
-get_system_services()
-{
+get_system_services() {
   try "detect active system services list"
   mkdir -p ${info_system}
   case "${os_name}" in
@@ -403,7 +435,8 @@ get_system_services()
       /usr/bin/service --status-all >> ${info_system}/services.txt 2>&1
       ;;
     *)
-      warning "Unable to determine active services."
+      warning "unable to determine active services."
+      return 1
       ;;
   esac
 
@@ -414,8 +447,7 @@ get_system_services()
   ok
 }
 
-get_docker_info()
-{
+get_docker_info() {
   try "gather Docker daemon information"
 
   pgrep dockerd > /dev/null
@@ -428,52 +460,70 @@ get_docker_info()
     timeout 20 docker version > ${info_system}/docker/docker-version.txt 2>&1 || echo "Timed out, ignoring \"docker version output \" "
 
     ok
-
   else
-    echo "WARNING: The Docker daemon is not running." | tee ${info_system}/docker/docker-not-running.txt
+    warning "the Docker daemon is not running." | tee ${info_system}/docker/docker-not-running.txt
   fi
 }
 
-get_containers_info()
-{
-  try "inspect running Docker containers and gather Amazon ECS container agent data"
+get_ecs_agent_info() {
+  try "collect Amazon ECS Container Agent state and config"
+
+  mkdir -p ${info_system}/ecs-agent
+  if [ -e /var/lib/ecs/data/ecs_agent_data.json ]; then
+    cat  /var/lib/ecs/data/ecs_agent_data.json | python -mjson.tool > ${info_system}/ecs-agent/ecs_agent_data.txt 2>&1
+  fi
+
+  if [ -e /etc/ecs/ecs.config ]; then
+    cp -f /etc/ecs/ecs.config ${info_system}/ecs-agent/ 2>&1
+    if grep --quiet "ECS_ENGINE_AUTH_DATA" ${info_system}/ecs-agent/ecs.config; then
+      sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' ${info_system}/ecs-agent/ecs.config
+    fi
+  fi
+  ok
+
+  try "collect Amazon ECS Container Agent engine data"
+
   pgrep agent > /dev/null
-
   if [[ "$?" -eq 0 ]]; then
-    mkdir -p ${info_system}/docker
+    if command -v curl >/dev/null; then
+      curl -s http://localhost:51678/v1/tasks | python -mjson.tool > ${info_system}/ecs-agent/agent-running-info.txt 2>&1
+      ok
+    else
+      warning "curl is unavailable for probing ECS Container Agent introspection endpoint"
+    fi
+  else
+    warning "The Amazon ECS Container Agent is not running" | tee ${info_system}/ecs-agent/ecs-agent-not-running.txt
+    return 1
+  fi
+}
 
-    for i in `docker ps -q`; do
-      docker inspect $i > $info_system/docker/container-$i.txt 2>&1
+get_docker_containers_info() {
+  try "inspect all Docker containers"
+
+  mkdir -p ${info_system}/docker
+
+  pgrep dockerd > /dev/null
+  if [[ "$?" -eq 0 ]]; then
+    for i in `docker ps -a -q`; do
+      timeout 10 docker inspect $i > $info_system/docker/container-$i.txt 2>&1
+      if [ $? -eq 124 ]; then
+        touch ${info_system}/docker/container-inspect-timed-out.txt
+        failed "'docker inspect' timed out, not gathering containers"
+        return 1
+      fi
+
       if grep --quiet "ECS_ENGINE_AUTH_DATA" $info_system/docker/container-$i.txt; then
         sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' $info_system/docker/container-$i.txt
       fi
     done
-
-
-    if [ -e /usr/bin/curl ]; then
-      curl -s http://localhost:51678/v1/tasks | python -mjson.tool > ${info_system}/ecs-agent/agent-running-info.txt 2>&1
-    fi
-
-    if [ -e /var/lib/ecs/data/ecs_agent_data.json ]; then
-      cat  /var/lib/ecs/data/ecs_agent_data.json | python -mjson.tool > ${info_system}/ecs-agent/ecs_agent_data.txt 2>&1
-    fi
-
-    if [ -e /etc/ecs/ecs.config ]; then
-      cp -f /etc/ecs/ecs.config ${info_system}/ecs-agent/ 2>&1
-      if grep --quiet "ECS_ENGINE_AUTH_DATA" ${info_system}/ecs-agent/ecs.config; then
-        sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' ${info_system}/ecs-agent/ecs.config
-      fi
-    fi
-
-    ok
-
   else
-    echo "WARNING: The Amazon ECS container agent is not running." | tee ${info_system}/ecs-agent/ecs-agent-not-running.txt
+    warning "the Docker daemon is not running." | tee ${info_system}/docker/docker-not-running.txt
+    return 1
   fi
+  ok
 }
 
-enable_docker_debug()
-{
+enable_docker_debug() {
   try "enable debug mode for the Docker daemon"
 
   case "${os_name}" in
@@ -496,14 +546,13 @@ enable_docker_debug()
       fi
       ;;
     *)
-      warning "The current operating system is not supported."
+      warning "the current operating system is not supported."
       ;;
   esac
 }
 
-enable_ecs_agent_debug()
-{
-  try "enable debug mode for the Amazon ECS container agent"
+enable_ecs_agent_debug() {
+  try "enable debug mode for the Amazon ECS Container Agent"
 
   case "${os_name}" in
     amazon)
@@ -515,7 +564,7 @@ enable_ecs_agent_debug()
         if [ -e /etc/ecs/ecs.config ]; then
           echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
 
-          try "restart the Amazon ECS container agent to enable debug mode"
+          try "restart the Amazon ECS Container Agent to enable debug mode"
           stop ecs; start ecs
         fi
 
@@ -524,7 +573,7 @@ enable_ecs_agent_debug()
       fi
       ;;
     *)
-      warning "The current operating system is not supported."
+      warning "the current operating system is not supported."
       ;;
   esac
 }
@@ -532,8 +581,6 @@ enable_ecs_agent_debug()
 # --------------------------------------------------------------------------------------------
 
 parse_options $*
-
-[ -z "${mode}" ] && mode="brief"
 
 case "${mode}" in
   brief)
