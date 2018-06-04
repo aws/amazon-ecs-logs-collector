@@ -328,7 +328,7 @@ get_kernel_logs() {
   if [ -e "/var/log/dmesg" ]; then
     cp -f /var/log/dmesg "$dstdir/dmesg.boot"
   fi
-  dmesg > "$dstdir/dmesg.current"
+  dmesg -T > "$dstdir/dmesg.current"
   ok
 }
 
