@@ -329,7 +329,7 @@ get_kernel_logs() {
     cp -f /var/log/dmesg "$dstdir/dmesg.boot"
   fi
   dmesg > "$dstdir/dmesg.current"
-  dmesg -T > "$dstdir/dmesg.human.current"
+  dmesg --ctime > "$dstdir/dmesg.human.current"
   ok
 }
 
