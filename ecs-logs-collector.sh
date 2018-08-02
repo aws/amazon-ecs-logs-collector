@@ -167,7 +167,7 @@ try_set_instance_infodir() {
   try "resolve instance-id"
 
   if command -v curl > /dev/null; then
-    instance_id=$(curl -s -m 3 http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
+    instance_id=$(curl --max-time 3 -s http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
     if [[ -n "$instance_id" ]]; then
       # Put logs into a directory for this instance.
       infodir="${infodir}/${instance_id}"
@@ -487,8 +487,11 @@ get_ecs_agent_info() {
   pgrep agent > /dev/null
   if [[ "$?" -eq 0 ]]; then
     if command -v curl >/dev/null; then
-      curl -s http://localhost:51678/v1/tasks | python -mjson.tool > ${info_system}/ecs-agent/agent-running-info.txt 2>&1
-      ok
+      if curl --max-time 3 -s http://localhost:51678/v1/tasks | python -mjson.tool > ${info_system}/ecs-agent/agent-running-info.txt 2>&1; then
+          ok
+      else
+          warning "failed to get agent data"
+      fi
     else
       warning "curl is unavailable for probing ECS Container Agent introspection endpoint"
     fi
