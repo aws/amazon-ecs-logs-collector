@@ -242,6 +242,8 @@ get_sysinfo() {
         os_name="amazon"
       elif grep --quiet "Red Hat" /etc/${found_file}; then
         os_name="redhat"
+      elif grep --quiet "CentOS" /etc/${found_file}; then
+        os_name="redhat"
       fi
       ;;
     debian_version)
