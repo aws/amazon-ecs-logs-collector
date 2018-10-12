@@ -26,7 +26,7 @@ export LANG="C"
 export LC_ALL="C"
 
 # Common options
-curdir="$(dirname $0)"
+curdir="$(dirname "$0")"
 infodir="${curdir}/collect"
 info_system="${infodir}/system"
 
@@ -64,14 +64,14 @@ parse_options() {
 
   progname="$0"
 
-  for i in `seq ${count}`; do
-    eval arg=\$$i
-    param="`echo ${arg} | awk -F '=' '{print $1}' | sed -e 's|--||'`"
-    val="`echo ${arg} | awk -F '=' '{print $2}'`"
+  for i in $(seq "$count"); do
+    eval arg=\$"$i"
+    param="$(echo "$arg" | awk -F '=' '{print $1}' | sed -e 's|--||')"
+    val="$(echo "$arg" | awk -F '=' '{print $2}')"
 
     case "${param}" in
       mode)
-        eval $param="${val}"
+        eval "$param"="${val}"
         ;;
       help)
         help && exit 0
@@ -93,12 +93,12 @@ info() {
 }
 
 try() {
-  local action=$@
+  local action=$*
   echo -n "Trying to $action ... "
 }
 
 warning() {
-  local reason=$@
+  local reason=$*
   echo "warning: $reason"
 }
 
@@ -107,12 +107,12 @@ fail() {
 }
 
 failed() {
-  local reason=$@
+  local reason=$*
   echo "failed: $reason"
 }
 
 die() {
-  echo "ERROR: $*.. exiting..."
+  echo "ERROR: $* .. exiting..."
   exit 1
 }
 
@@ -132,12 +132,12 @@ is_diskfull() {
 
   threshold=70
   i=2
-  result=`df -kh |grep -v "Filesystem" | awk '{ print $5 }' | sed 's/%//g'`
+  result=$(df -kh |grep -v "Filesystem" | awk '{ print $5 }' | sed 's/%//g')
   exceeded=0
 
   for percent in ${result}; do
     if [[ "${percent}" -gt "${threshold}" ]]; then
-      partition=`df -kh | head -$i | tail -1| awk '{print $1}'`
+      partition=$(df -kh | head -$i | tail -1| awk '{print $1}')
       echo
       warning "${partition} is ${percent}% full, please ensure adequate disk space to collect and store the log files."
       : $((exceeded++))
@@ -153,8 +153,8 @@ is_diskfull() {
 }
 
 cleanup() {
-  rm -rf ${infodir} >/dev/null 2>&1
-  rm -f ${curdir}/collect.tgz
+  rm -rf "$infodir" >/dev/null 2>&1
+  rm -f "$curdir"/collect.tgz
 }
 
 init() {
@@ -172,6 +172,7 @@ try_set_instance_infodir() {
       # Put logs into a directory for this instance.
       infodir="${infodir}/${instance_id}"
       info_system="${infodir}/system"
+      echo "$instance_id" | "$info_system"/instance-id.txt
     else
       warning "unable to resolve instance metadata"
       return 1
@@ -212,11 +213,11 @@ pack() {
   try "archive gathered log information"
 
   local tar_bin
-  tar_bin="`which tar 2>/dev/null`"
+  tar_bin="$(which tar 2>/dev/null)"
   [ -z "${tar_bin}" ] && warning "TAR archiver not found, please install a TAR archiver to create the collection archive. You can still view the logs in the collect folder."
 
-  cd ${curdir}
-  ${tar_bin} -czf ${infodir}.tgz ${infodir} > /dev/null 2>&1
+  cd "$curdir" || echo "cd failed."; exit 
+  ${tar_bin} -czf "$infodir".tgz "$infodir" > /dev/null 2>&1
 
   ok
 }
@@ -226,8 +227,8 @@ pack() {
 get_sysinfo() {
   try "collect system information"
 
-  res="`/bin/uname -m`"
-  [ "${res}" = "amd64" -o "$res" = "x86_64" ] && arch="x86_64" || arch="i386"
+  res="$(/bin/uname -m)"
+  ( [ "${res}" = "amd64" ] || [ "$res" = "x86_64" ] ) && arch="x86_64" || arch="i386"
 
   found_file=""
   for f in system-release redhat-release lsb-release debian_version; do
@@ -270,15 +271,15 @@ get_sysinfo() {
 
 get_mounts_info() {
   try "get mount points and volume information"
-  mkdir -p ${info_system}
-  mount > ${info_system}/mounts.txt
-  echo "" >> ${info_system}/mounts.txt
-  df -h >> ${info_system}/mounts.txt
+  mkdir -p "$info_system"
+  mount > "$info_system"/mounts.txt
+  echo "" >> "$info_system"/mounts.txt
+  df -h >> "$info_system"/mounts.txt
 
   if command -v lvdisplay > /dev/null; then
-    lvdisplay > ${info_system}/lvdisplay.txt
-    vgdisplay > ${info_system}/vgdisplay.txt
-    pvdisplay > ${info_system}/pvdisplay.txt
+    lvdisplay > "$info_system"/lvdisplay.txt
+    vgdisplay > "$info_system"/vgdisplay.txt
+    pvdisplay > "$info_system"/pvdisplay.txt
   fi
 
   ok
@@ -287,14 +288,14 @@ get_mounts_info() {
 get_selinux_info() {
   try "check SELinux status"
 
-  enforced="`getenforce 2>/dev/null`"
+  enforced="$(getenforce 2>/dev/null)"
 
-  [ "${pkgtype}" != "rpm" -o -z "${enforced}" ] \
+  ( [ "${pkgtype}" != "rpm" ] || [ -z "${enforced}" ] ) \
     && info "not installed" \
     && return
 
-  mkdir -p ${info_system}
-  echo -e "SELinux mode:\n    ${enforced}" >  ${info_system}/selinux.txt
+  mkdir -p "$info_system"
+  echo -e "SELinux mode:\n    ${enforced}" >  "$info_system"/selinux.txt
 
   ok
 }
@@ -302,9 +303,9 @@ get_selinux_info() {
 get_iptables_info() {
   try "get iptables list"
 
-  mkdir -p ${info_system}
-  /sbin/iptables -nvL -t filter > ${info_system}/iptables-filter.txt
-  /sbin/iptables -nvL -t nat  > ${info_system}/iptables-nat.txt
+  mkdir -p "$info_system"
+  /sbin/iptables -nvL -t filter > "$info_system"/iptables-filter.txt
+  /sbin/iptables -nvL -t nat  > "$info_system"/iptables-nat.txt
 
   ok
 }
@@ -312,10 +313,10 @@ get_iptables_info() {
 get_common_logs() {
   try "collect common operating system logs"
   dstdir="${info_system}/var_log"
-  mkdir -p ${dstdir}
+  mkdir -p "$dstdir"
 
   for entry in syslog messages; do
-    [ -e "/var/log/${entry}" ] && cp -fR /var/log/${entry} ${dstdir}/
+    [ -e "/var/log/${entry}" ] && cp -fR /var/log/${entry} "$dstdir"/
   done
 
   ok
@@ -336,10 +337,10 @@ get_kernel_logs() {
 get_docker_logs() {
   try "collect Docker daemon logs"
   dstdir="${info_system}/docker_log"
-  mkdir -p ${dstdir}
+  mkdir -p "$dstdir"
   case "${os_name}" in
     amazon)
-      cp /var/log/docker ${dstdir}
+      cp /var/log/docker "$dstdir"
       ;;
     amazon2)
       if [ -e /bin/journalctl ]; then
@@ -348,16 +349,16 @@ get_docker_logs() {
       ;;
     redhat)
       if [ -e /bin/journalctl ]; then
-        /bin/journalctl -u docker > ${dstdir}/docker
+        /bin/journalctl -u docker > "$dstdir"/docker
       fi
       ;;
     debian)
       if [ -e /bin/journalctl ]; then
-        /bin/journalctl -u docker > ${dstdir}/docker
+        /bin/journalctl -u docker > "$dstdir"/docker
       fi
       ;;
     ubuntu14)
-      cp -f /var/log/upstart/docker* ${dstdir}
+      cp -f /var/log/upstart/docker* "${dstdir}"
       ;;
     *)
       warning "The current operating system is not supported."
@@ -377,9 +378,9 @@ get_ecs_agent_logs() {
     return 1
   fi
 
-  mkdir -p ${dstdir}
+  mkdir -p "$dstdir"
   for entry in ecs-agent.log*; do
-    cp -fR /var/log/ecs/${entry} ${dstdir}/
+    cp -fR /var/log/ecs/"$entry" "$dstdir"/
   done
 
   ok
@@ -394,9 +395,9 @@ get_ecs_init_logs() {
     return 1
   fi
 
-  mkdir -p ${dstdir}
+  mkdir -p "$dstdir"
   for entry in ecs-init.log*; do
-    cp -fR /var/log/ecs/${entry} ${dstdir}/
+    cp -fR /var/log/ecs/"$entry" "$dstdir"/
   done
 
   ok
@@ -405,13 +406,13 @@ get_ecs_init_logs() {
 get_pkglist() {
   try "detect installed packages"
 
-  mkdir -p ${info_system}
+  mkdir -p "$info_system"
   case "${pkgtype}" in
     rpm)
-      rpm -qa >${info_system}/pkglist.txt 2>&1
+      rpm -qa >"$info_system"/pkglist.txt 2>&1
       ;;
     deb)
-      dpkg --list > ${info_system}/pkglist.txt 2>&1
+      dpkg --list > "$info_system"/pkglist.txt 2>&1
       ;;
     *)
       warning "unknown package type."
@@ -424,24 +425,24 @@ get_pkglist() {
 
 get_system_services() {
   try "detect active system services list"
-  mkdir -p ${info_system}
+  mkdir -p "$info_system"
   case "${os_name}" in
     amazon)
-      chkconfig --list > ${info_system}/services.txt 2>&1
+      chkconfig --list > "$info_system"/services.txt 2>&1
       ;;
     amazon2)
       systemctl list-units > ${info_system}/services.txt 2>&1
       ;;
     redhat)
-      /bin/systemctl list-units > ${info_system}/services.txt 2>&1
+      /bin/systemctl list-units > "$info_system"/services.txt 2>&1
       ;;
     debian)
-      /bin/systemctl list-units > ${info_system}/services.txt 2>&1
+      /bin/systemctl list-units > "$info_system"/services.txt 2>&1
       ;;
     ubuntu14)
-      /sbin/initctl list | awk '{ print $1 }' | xargs -n1 initctl show-config > ${info_system}/services.txt 2>&1
-      printf "\n\n\n\n" >> ${info_system}/services.txt 2>&1
-      /usr/bin/service --status-all >> ${info_system}/services.txt 2>&1
+      /sbin/initctl list | awk '{ print $1 }' | xargs -n1 initctl show-config > "$info_system"/services.txt 2>&1
+      printf "\n\n\n\n" >> "$info_system"/services.txt 2>&1
+      /usr/bin/service --status-all >> "$info_system"/services.txt 2>&1
       ;;
     *)
       warning "unable to determine active services."
@@ -449,9 +450,9 @@ get_system_services() {
       ;;
   esac
 
-  top -b -n 1 > ${info_system}/top.txt 2>&1
-  ps fauxwww > ${info_system}/ps.txt 2>&1
-  netstat -plant > ${info_system}/netstat.txt 2>&1
+  top -b -n 1 > "$info_system"/top.txt 2>&1
+  ps fauxwww > "$info_system"/ps.txt 2>&1
+  netstat -plant > "$info_system"/netstat.txt 2>&1
 
   ok
 }
@@ -459,43 +460,41 @@ get_system_services() {
 get_docker_info() {
   try "gather Docker daemon information"
 
-  pgrep dockerd > /dev/null
-  if [[ "$?" -eq 0 ]]; then
-    mkdir -p ${info_system}/docker
+  if pgrep dockerd > /dev/null ; then
+    mkdir -p "$info_system"/docker
 
-    timeout 20 docker info > ${info_system}/docker/docker-info.txt 2>&1 || echo "Timed out, ignoring \"docker info output \" "
-    timeout 20 docker ps --all --no-trunc > ${info_system}/docker/docker-ps.txt 2>&1 || echo "Timed out, ignoring \"docker ps --all --no-truc output \" "
-    timeout 20 docker images > ${info_system}/docker/docker-images.txt 2>&1 || echo "Timed out, ignoring \"docker images output \" "
-    timeout 20 docker version > ${info_system}/docker/docker-version.txt 2>&1 || echo "Timed out, ignoring \"docker version output \" "
+    timeout 20 docker info > "$info_system"/docker/docker-info.txt 2>&1 || echo "Timed out, ignoring \"docker info output \" "
+    timeout 20 docker ps --all --no-trunc > "$info_system"/docker/docker-ps.txt 2>&1 || echo "Timed out, ignoring \"docker ps --all --no-truc output \" "
+    timeout 20 docker images > "$info_system"/docker/docker-images.txt 2>&1 || echo "Timed out, ignoring \"docker images output \" "
+    timeout 20 docker version > "$info_system"/docker/docker-version.txt 2>&1 || echo "Timed out, ignoring \"docker version output \" "
 
     ok
   else
-    warning "the Docker daemon is not running." | tee ${info_system}/docker/docker-not-running.txt
+    warning "the Docker daemon is not running." | tee "$info_system"/docker/docker-not-running.txt
   fi
 }
 
 get_ecs_agent_info() {
   try "collect Amazon ECS Container Agent state and config"
 
-  mkdir -p ${info_system}/ecs-agent
+  mkdir -p "$info_system"/ecs-agent
   if [ -e /var/lib/ecs/data/ecs_agent_data.json ]; then
-    cat  /var/lib/ecs/data/ecs_agent_data.json | python -mjson.tool > ${info_system}/ecs-agent/ecs_agent_data.txt 2>&1
+    python -mjson.tool < /var/lib/ecs/data/ecs_agent_data.json > "$info_system"/ecs-agent/ecs_agent_data.txt 2>&1
   fi
 
   if [ -e /etc/ecs/ecs.config ]; then
-    cp -f /etc/ecs/ecs.config ${info_system}/ecs-agent/ 2>&1
-    if grep --quiet "ECS_ENGINE_AUTH_DATA" ${info_system}/ecs-agent/ecs.config; then
-      sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' ${info_system}/ecs-agent/ecs.config
+    cp -f /etc/ecs/ecs.config "$info_system"/ecs-agent/ 2>&1
+    if grep --quiet "ECS_ENGINE_AUTH_DATA" "$info_system"/ecs-agent/ecs.config; then
+      sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' "$info_system"/ecs-agent/ecs.config
     fi
   fi
   ok
 
   try "collect Amazon ECS Container Agent engine data"
 
-  pgrep agent > /dev/null
-  if [[ "$?" -eq 0 ]]; then
+  if pgrep agent > /dev/null ; then
     if command -v curl >/dev/null; then
-      if curl --max-time 3 -s http://localhost:51678/v1/tasks | python -mjson.tool > ${info_system}/ecs-agent/agent-running-info.txt 2>&1; then
+      if curl --max-time 3 -s http://localhost:51678/v1/tasks | python -mjson.tool > "$info_system"/ecs-agent/agent-running-info.txt 2>&1; then
           ok
       else
           warning "failed to get agent data"
@@ -504,7 +503,7 @@ get_ecs_agent_info() {
       warning "curl is unavailable for probing ECS Container Agent introspection endpoint"
     fi
   else
-    warning "The Amazon ECS Container Agent is not running" | tee ${info_system}/ecs-agent/ecs-agent-not-running.txt
+    warning "The Amazon ECS Container Agent is not running" | tee "$info_system"/ecs-agent/ecs-agent-not-running.txt
     return 1
   fi
 }
@@ -512,24 +511,23 @@ get_ecs_agent_info() {
 get_docker_containers_info() {
   try "inspect all Docker containers"
 
-  mkdir -p ${info_system}/docker
+  mkdir -p "$info_system"/docker
 
-  pgrep dockerd > /dev/null
-  if [[ "$?" -eq 0 ]]; then
-    for i in `docker ps -a -q`; do
-      timeout 10 docker inspect $i > $info_system/docker/container-$i.txt 2>&1
+ if pgrep dockerd > /dev/null ; then
+    for i in $(docker ps -a -q); do
+      timeout 10 docker inspect "$i" > "$info_system"/docker/container-"$i".txt 2>&1
       if [ $? -eq 124 ]; then
-        touch ${info_system}/docker/container-inspect-timed-out.txt
+        touch "$info_system"/docker/container-inspect-timed-out.txt
         failed "'docker inspect' timed out, not gathering containers"
         return 1
       fi
 
-      if grep --quiet "ECS_ENGINE_AUTH_DATA" $info_system/docker/container-$i.txt; then
-        sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' $info_system/docker/container-$i.txt
+      if grep --quiet "ECS_ENGINE_AUTH_DATA" "$info_system"/docker/container-"$i".txt; then
+        sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' "$info_system"/docker/container-"$i".txt
       fi
     done
   else
-    warning "the Docker daemon is not running." | tee ${info_system}/docker/docker-not-running.txt
+    warning "the Docker daemon is not running." | tee "$info_system"/docker/docker-not-running.txt
     return 1
   fi
   ok
@@ -621,7 +619,7 @@ enable_ecs_agent_debug() {
 
 # --------------------------------------------------------------------------------------------
 
-parse_options $*
+parse_options "$*"
 
 case "${mode}" in
   brief)
