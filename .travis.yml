@@ -1,0 +1,4 @@
+language: bash
+script:
+  - shellcheck ecs-logs-collector.sh
+
