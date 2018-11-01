@@ -595,7 +595,7 @@ enable_ecs_agent_debug() {
 
         try "restart the Amazon ECS Container Agent to enable debug mode"
         systemctl restart ecs
-      ok
+        ok
 
       fi
       ;;
@@ -609,7 +609,7 @@ enable_ecs_agent_debug() {
 
         try "restart the Amazon ECS Container Agent to enable debug mode"
         systemctl restart ecs
-      ok
+        ok
 
       fi
       ;;
