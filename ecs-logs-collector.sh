@@ -265,9 +265,6 @@ get_sysinfo() {
       ;;
   esac
 
-  mkdir -p ${info_system}
-  last > ${info_system}/last.txt
-
   ok
 }
 
