@@ -172,7 +172,6 @@ try_set_instance_infodir() {
       # Put logs into a directory for this instance.
       infodir="${infodir}/${instance_id}"
       info_system="${infodir}/system"
-      echo "$instance_id | $info_system/instance-id.txt"
     else
       warning "unable to resolve instance metadata"
       return 1
@@ -599,6 +598,7 @@ enable_ecs_agent_debug() {
 
         try "restart the Amazon ECS Container Agent to enable debug mode"
         systemctl restart ecs
+      ok
 
       fi
       ;;
@@ -612,6 +612,7 @@ enable_ecs_agent_debug() {
 
         try "restart the Amazon ECS Container Agent to enable debug mode"
         systemctl restart ecs
+      ok
 
       fi
       ;;
