@@ -172,7 +172,7 @@ try_set_instance_infodir() {
       # Put logs into a directory for this instance.
       infodir="${infodir}/${instance_id}"
       info_system="${infodir}/system"
-      echo "$instance_id" | $info_system/instance-id.txt
+      echo "$instance_id | $info_system/instance-id.txt"
     else
       warning "unable to resolve instance metadata"
       return 1
@@ -569,7 +569,7 @@ enable_docker_debug() {
       else
 
         if [ -e /etc/sysconfig/docker ]; then
-          sed -i 's/^OPTIONS="\(.*\)/OPTIONS="-D \1/g' >> /etc/sysconfig/docker
+          sed -i 's/^OPTIONS="\(.*\)/OPTIONS="-D \1/g' /etc/sysconfig/docker
 
           try "restart Docker daemon to enable debug mode"
           /sbin/service docker restart
@@ -595,14 +595,10 @@ enable_ecs_agent_debug() {
       then
         info "Debug mode is already enabled."
       else
-        if [ -e /etc/ecs/ecs.config ]; then
-          echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
+        echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
 
-          try "restart the Amazon ECS Container Agent to enable debug mode"
-          stop ecs; start ecs
-        fi
-
-        ok
+        try "restart the Amazon ECS Container Agent to enable debug mode"
+        systemctl restart ecs
 
       fi
       ;;
@@ -612,14 +608,10 @@ enable_ecs_agent_debug() {
       then
         info "Debug mode is already enabled."
       else
-        if [ -e /etc/ecs/ecs.config ]; then
-          echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
+        echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
 
-          try "restart the Amazon ECS Container Agent to enable debug mode"
-          stop ecs; start ecs
-        fi
-
-        ok
+        try "restart the Amazon ECS Container Agent to enable debug mode"
+        systemctl restart ecs
 
       fi
       ;;
