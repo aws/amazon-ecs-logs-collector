@@ -238,8 +238,10 @@ get_sysinfo() {
   case "${found_file}" in
     system-release)
       pkgtype="rpm"
-      if grep --quiet "Amazon" /etc/${found_file}; then
+      if grep --quiet "Amazon Linux AMI release" /etc/${found_file}; then
         os_name="amazon"
+      elif grep --quiet "Amazon Linux 2" /etc/${found_file}; then
+        os_name="amazon2"
       elif grep --quiet "Red Hat" /etc/${found_file}; then
         os_name="redhat"
       elif grep --quiet "CentOS" /etc/${found_file}; then
@@ -343,6 +345,11 @@ get_docker_logs() {
     amazon)
       cp /var/log/docker ${dstdir}
       ;;
+    amazon2)
+      if [ -e /bin/journalctl ]; then
+        /bin/journalctl -u docker > ${dstdir}/docker
+      fi
+      ;;
     redhat)
       if [ -e /bin/journalctl ]; then
         /bin/journalctl -u docker > ${dstdir}/docker
@@ -424,6 +431,9 @@ get_system_services() {
   mkdir -p ${info_system}
   case "${os_name}" in
     amazon)
+      chkconfig --list > ${info_system}/services.txt 2>&1
+      ;;
+    amazon2)
       chkconfig --list > ${info_system}/services.txt 2>&1
       ;;
     redhat)
@@ -551,6 +561,24 @@ enable_docker_debug() {
 
       fi
       ;;
+    amazon2)
+
+      if [ -e /etc/sysconfig/docker ] && grep -q "^\s*OPTIONS=\"-D" /etc/sysconfig/docker
+      then
+        info "Debug mode is already enabled."
+      else
+
+        if [ -e /etc/sysconfig/docker ]; then
+          sed -i 's/^OPTIONS="\(.*\)/OPTIONS="-D \1/g' >> /etc/sysconfig/docker
+
+          try "restart Docker daemon to enable debug mode"
+          /sbin/service docker restart
+        fi
+
+        ok
+
+      fi
+      ;;
     *)
       warning "the current operating system is not supported."
       ;;
@@ -562,6 +590,23 @@ enable_ecs_agent_debug() {
 
   case "${os_name}" in
     amazon)
+
+      if [ -e /etc/ecs/ecs.config ] &&  grep -q "^\s*ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
+      then
+        info "Debug mode is already enabled."
+      else
+        if [ -e /etc/ecs/ecs.config ]; then
+          echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
+
+          try "restart the Amazon ECS Container Agent to enable debug mode"
+          stop ecs; start ecs
+        fi
+
+        ok
+
+      fi
+      ;;
+    amazon2)
 
       if [ -e /etc/ecs/ecs.config ] &&  grep -q "^\s*ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
       then
