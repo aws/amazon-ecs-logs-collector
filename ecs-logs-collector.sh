@@ -430,7 +430,7 @@ get_system_services() {
       chkconfig --list > ${info_system}/services.txt 2>&1
       ;;
     amazon2)
-      chkconfig --list > ${info_system}/services.txt 2>&1
+      systemctl list-units > ${info_system}/services.txt 2>&1
       ;;
     redhat)
       /bin/systemctl list-units > ${info_system}/services.txt 2>&1
@@ -568,7 +568,7 @@ enable_docker_debug() {
           sed -i 's/^OPTIONS="\(.*\)/OPTIONS="-D \1/g' /etc/sysconfig/docker
 
           try "restart Docker daemon to enable debug mode"
-          /sbin/service docker restart
+          systemctl restart docker.service
         fi
 
         ok
@@ -594,7 +594,7 @@ enable_ecs_agent_debug() {
         echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
 
         try "restart the Amazon ECS Container Agent to enable debug mode"
-        systemctl restart ecs
+        stop ecs; start ecs
         ok
 
       fi
