@@ -172,7 +172,8 @@ try_set_instance_infodir() {
       # Put logs into a directory for this instance.
       infodir="${infodir}/${instance_id}"
       info_system="${infodir}/system"
-      echo "$instance_id" | $info_system/instance-id.txt
+      mkdir -p ${info_system}
+      echo "$instance_id" > ${info_system}/instance-id.txt
     else
       warning "unable to resolve instance metadata"
       return 1
@@ -392,8 +393,8 @@ get_ecs_init_logs() {
   fi
 
   mkdir -p ${dstdir}
-  for entry in ecs-init.log*; do
-    cp -fR /var/log/ecs/${entry} ${dstdir}/
+  for entry in $(ls /var/log/ecs/ecs-init.log* 1> /dev/null 2>&1); do
+    cp -fR ${entry} ${dstdir}/
   done
 
   ok
