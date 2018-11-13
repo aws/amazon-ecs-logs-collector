@@ -25,15 +25,35 @@
 export LANG="C"
 export LC_ALL="C"
 
-# Common options
-curdir="$(dirname "$0")"
-infodir="${curdir}/collect"
-info_system="${infodir}/system"
+# Collection configuration
 
-# Global options
+# curdir is the working root of collection.
+curdir="$(dirname "$0")"
+# collectdir is where all collected informaton is placed under. This
+# services as the top level for this script's operation.
+collectdir="${curdir}/collect"
+# infodir is the directory used to collate each check's data, this may
+# be updated prior to checks to place this under a more unique path,
+# such as "$collectdir/i-ffffffffffffffffff" to allow for distinction
+# of unpacked logs.
+infodir="$collectdir"
+# pack_name is the name of the resulting tarball. This will generally
+# be collect-i-ffffffffffffffffff, where i-ffffffffffffffffff is the
+# instance id.
+pack_name="collect"
+
+# Shared check variables
+
+# info_system is where the checks' data is placed.
+info_system="${infodir}/system"
+# pkgtype is the detected packaging system used on the host (eg: yum, deb)
 pkgtype=''  # defined in get_sysinfo
+# os_name is the machine name used for casing check behavior.
 os_name=''  # defined in get_sysinfo
 progname='' # defined in parse_options
+
+# Script run defaults
+
 mode='brief' # defined in parse_options
 
 
@@ -164,6 +184,16 @@ init() {
   get_sysinfo
 }
 
+# change_infodir updates the collection location for the script.
+#
+# This should not be used after updating the location as check data
+# would be spread across unknown locations.
+change_infodir() {
+  local newdir="$1"
+  infodir="$newdir"
+  info_system="$newdir"
+}
+
 try_set_instance_infodir() {
   try "resolve instance-id"
 
@@ -171,8 +201,9 @@ try_set_instance_infodir() {
     instance_id=$(curl --max-time 3 -s http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
     if [[ -n "$instance_id" ]]; then
       # Put logs into a directory for this instance.
-      infodir="${infodir}/${instance_id}"
-      info_system="${infodir}/system"
+      change_infodir "${collectdir}/${instance_id}"
+      # And in a pack that includes the instance id in its name.
+      pack_name="collect-${instance_id}"
       mkdir -p "${info_system}"
       echo "$instance_id" > "$info_system"/instance-id.txt
     else
@@ -219,7 +250,8 @@ pack() {
   [ -z "${tar_bin}" ] && warning "TAR archiver not found, please install a TAR archiver to create the collection archive. You can still view the logs in the collect folder."
 
   cd "$curdir" || { echo "cd failed."; exit 1; }
-  ${tar_bin} -czf "$infodir".tgz "$infodir" > /dev/null 2>&1
+
+  ${tar_bin} -cvzf "$collectdir/../$pack_name".tgz "$infodir" > /dev/null 2>&1
 
   ok
 }
