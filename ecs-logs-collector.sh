@@ -172,7 +172,8 @@ try_set_instance_infodir() {
       # Put logs into a directory for this instance.
       infodir="${infodir}/${instance_id}"
       info_system="${infodir}/system"
-      echo "$instance_id" | "$info_system"/instance-id.txt
+      mkdir -p "${info_system}"
+      echo "$instance_id" > "$info_system"/instance-id.txt
     else
       warning "unable to resolve instance metadata"
       return 1
@@ -213,10 +214,10 @@ pack() {
   try "archive gathered log information"
 
   local tar_bin
-  tar_bin="$(which tar 2>/dev/null)"
+  tar_bin="$(command -v tar 2>/dev/null)"
   [ -z "${tar_bin}" ] && warning "TAR archiver not found, please install a TAR archiver to create the collection archive. You can still view the logs in the collect folder."
 
-  cd "$curdir" || echo "cd failed."; exit 
+  cd "$curdir" || { echo "cd failed."; exit 1; }
   ${tar_bin} -czf "$infodir".tgz "$infodir" > /dev/null 2>&1
 
   ok
