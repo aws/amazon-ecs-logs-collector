@@ -66,6 +66,7 @@ parse_options() {
 
   for i in $(seq "$count"); do
     eval arg=\$"$i"
+    # shellcheck disable=SC2154
     param="$(echo "$arg" | awk -F '=' '{print $1}' | sed -e 's|--||')"
     val="$(echo "$arg" | awk -F '=' '{print $2}')"
 
@@ -620,7 +621,7 @@ enable_ecs_agent_debug() {
 
 # --------------------------------------------------------------------------------------------
 
-parse_options "$*"
+parse_options "$@"
 
 case "${mode}" in
   brief)
