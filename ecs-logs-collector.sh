@@ -163,7 +163,7 @@ is_diskfull() {
       warning "${partition} is ${percent}% full, please ensure adequate disk space to collect and store the log files."
       : $((exceeded++))
     fi
-    let i=$i+1
+    i=$((i+1))
   done
 
   if [ "$exceeded" -gt 0 ]; then
@@ -261,9 +261,6 @@ pack() {
 get_sysinfo() {
   try "collect system information"
 
-  res="$(/bin/uname -m)"
-  ( [ "${res}" = "amd64" ] || [ "$res" = "x86_64" ] ) && arch="x86_64" || arch="i386"
-
   found_file=""
   for f in system-release redhat-release lsb-release debian_version; do
     [ -f "/etc/${f}" ] && found_file="${f}" && break
@@ -324,12 +321,12 @@ get_selinux_info() {
 
   enforced="$(getenforce 2>/dev/null)"
 
-  ( [ "${pkgtype}" != "rpm" ] || [ -z "${enforced}" ] ) \
+  { [ "${pkgtype}" != "rpm" ] || [ -z "${enforced}" ]; } \
     && info "not installed" \
     && return
 
   mkdir -p "$info_system"
-  echo -e "SELinux mode:\n    ${enforced}" >  "$info_system"/selinux.txt
+  echo -e "SELinux mode:\\n    ${enforced}" >  "$info_system"/selinux.txt
 
   ok
 }
@@ -378,7 +375,7 @@ get_docker_logs() {
       ;;
     amazon2)
       if [ -e /bin/journalctl ]; then
-        /bin/journalctl -u docker > ${dstdir}/docker
+        /bin/journalctl -u docker > "${dstdir}"/docker
       fi
       ;;
     redhat)
@@ -465,7 +462,7 @@ get_system_services() {
       chkconfig --list > "$info_system"/services.txt 2>&1
       ;;
     amazon2)
-      systemctl list-units > ${info_system}/services.txt 2>&1
+      systemctl list-units > "$info_system"/services.txt 2>&1
       ;;
     redhat)
       /bin/systemctl list-units > "$info_system"/services.txt 2>&1
@@ -475,7 +472,7 @@ get_system_services() {
       ;;
     ubuntu14)
       /sbin/initctl list | awk '{ print $1 }' | xargs -n1 initctl show-config > "$info_system"/services.txt 2>&1
-      printf "\n\n\n\n" >> "$info_system"/services.txt 2>&1
+      printf "\\n\\n\\n\\n" >> "$info_system"/services.txt 2>&1
       /usr/bin/service --status-all >> "$info_system"/services.txt 2>&1
       ;;
     *)
@@ -573,7 +570,7 @@ enable_docker_debug() {
   case "${os_name}" in
     amazon)
 
-      if [ -e /etc/sysconfig/docker ] && grep -q "^\s*OPTIONS=\"-D" /etc/sysconfig/docker
+      if [ -e /etc/sysconfig/docker ] && grep -q "^\\s*OPTIONS=\"-D" /etc/sysconfig/docker
       then
         info "Debug mode is already enabled."
       else
@@ -591,7 +588,7 @@ enable_docker_debug() {
       ;;
     amazon2)
 
-      if [ -e /etc/sysconfig/docker ] && grep -q "^\s*OPTIONS=\"-D" /etc/sysconfig/docker
+      if [ -e /etc/sysconfig/docker ] && grep -q "^\\s*OPTIONS=\"-D" /etc/sysconfig/docker
       then
         info "Debug mode is already enabled."
       else
@@ -619,7 +616,7 @@ enable_ecs_agent_debug() {
   case "${os_name}" in
     amazon)
 
-      if [ -e /etc/ecs/ecs.config ] &&  grep -q "^\s*ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
+      if [ -e /etc/ecs/ecs.config ] &&  grep -q "^\\s*ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
       then
         info "Debug mode is already enabled."
       else
@@ -633,7 +630,7 @@ enable_ecs_agent_debug() {
       ;;
     amazon2)
 
-      if [ -e /etc/ecs/ecs.config ] &&  grep -q "^\s*ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
+      if [ -e /etc/ecs/ecs.config ] &&  grep -q "^\\s*ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
       then
         info "Debug mode is already enabled."
       else
