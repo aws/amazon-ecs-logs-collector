@@ -413,8 +413,8 @@ get_ecs_agent_logs() {
   fi
 
   mkdir -p "$dstdir"
-  for entry in ecs-agent.log*; do
-    cp -fR /var/log/ecs/"$entry" "$dstdir"/
+  for agent_log_file in /var/log/ecs/ecs-agent.log*; do
+    cp -fR "$agent_log_file" "$dstdir"/
   done
 
   ok
@@ -430,8 +430,8 @@ get_ecs_init_logs() {
   fi
 
   mkdir -p "$dstdir"
-  for entry in ecs-init.log*; do
-    cp -fR /var/log/ecs/"$entry" "$dstdir"/
+  for ecs_init_log_file in /var/log/ecs/ecs-init.log*; do
+    cp -fR "$ecs_init_log_file" "$dstdir"/
   done
 
   ok
