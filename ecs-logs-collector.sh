@@ -397,7 +397,7 @@ get_ecs_init_logs() {
   fi
 
   mkdir -p ${dstdir}
-  for entry in $(ls /var/log/ecs/ecs-init.log* 1> /dev/null 2>&1); do
+  for entry in $(ls /var/log/ecs/ecs-init.log* 2>/dev/null); do
     cp -fR ${entry} ${dstdir}/
   done
 
