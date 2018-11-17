@@ -31,7 +31,7 @@ export LC_ALL="C"
 curdir="$(dirname "$0")"
 # collectdir is where all collected informaton is placed under. This
 # services as the top level for this script's operation.
-collectdir="${curdir}/collect"
+readonly collectdir="${curdir}/collect"
 # pack_name is the name of the resulting tarball. This will generally
 # be collect-i-ffffffffffffffffff, where i-ffffffffffffffffff is the
 # instance id.
@@ -124,7 +124,7 @@ failed() {
 }
 
 die() {
-  echo "ERROR: $* .. exiting..."
+  echo "ERROR: $*"
   exit 1
 }
 
