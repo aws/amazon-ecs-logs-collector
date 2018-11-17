@@ -56,7 +56,7 @@ mode='brief' # defined in parse_options
 # ---------------------------------------------------------------------------------------
 
 help() {
-  echo "USAGE: ${progname} [--mode=[brief|debug]]"
+  echo "USAGE: ${progname} [--mode=[brief|debug|debug-only]]"
   echo "       ${progname} --help"
   echo ""
   echo "OPTIONS:"
@@ -118,10 +118,6 @@ warning() {
   echo "warning: $reason"
 }
 
-fail() {
-  echo "failed"
-}
-
 failed() {
   local reason=$*
   echo "failed: $reason"
@@ -136,7 +132,7 @@ is_root() {
   try "check if the script is running as root"
 
   if [[ "$(id -u)" != "0" ]]; then
-    die "This script must be run as root!"
+    die "this script must be run as root!"
 
   fi
 
@@ -277,7 +273,6 @@ get_sysinfo() {
       fi
       ;;
     *)
-      fail
       die "Unsupported OS detected."
       ;;
   esac
