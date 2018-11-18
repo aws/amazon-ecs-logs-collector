@@ -283,6 +283,7 @@ get_sysinfo() {
 
 get_mounts_info() {
   try "get mount points and volume information"
+
   mkdir -p "$info_system"
   mount > "$info_system"/mounts.txt
   echo "" >> "$info_system"/mounts.txt
@@ -324,6 +325,7 @@ get_iptables_info() {
 
 get_common_logs() {
   try "collect common operating system logs"
+
   dstdir="${info_system}/var_log"
   mkdir -p "$dstdir"
 
@@ -336,6 +338,7 @@ get_common_logs() {
 
 get_kernel_logs() {
   try "collect kernel logs"
+
   dstdir="${info_system}/kernel"
   mkdir -p "$dstdir"
   if [ -e "/var/log/dmesg" ]; then
@@ -348,25 +351,16 @@ get_kernel_logs() {
 
 get_docker_logs() {
   try "collect Docker daemon logs"
+
   dstdir="${info_system}/docker_log"
   mkdir -p "$dstdir"
   case "${os_name}" in
     amazon)
-      cp /var/log/docker "$dstdir"
+      cp -f /var/log/docker "$dstdir"
       ;;
-    amazon2)
+    amazon2|redhat|debian)
       if [ -e /bin/journalctl ]; then
         /bin/journalctl -u docker > "${dstdir}"/docker
-      fi
-      ;;
-    redhat)
-      if [ -e /bin/journalctl ]; then
-        /bin/journalctl -u docker > "$dstdir"/docker
-      fi
-      ;;
-    debian)
-      if [ -e /bin/journalctl ]; then
-        /bin/journalctl -u docker > "$dstdir"/docker
       fi
       ;;
     ubuntu14)
@@ -383,6 +377,7 @@ get_docker_logs() {
 
 get_ecs_agent_logs() {
   try "collect Amazon ECS Container Agent logs"
+
   dstdir="${info_system}/ecs-agent"
 
   if [ ! -d /var/log/ecs ]; then
@@ -400,6 +395,7 @@ get_ecs_agent_logs() {
 
 get_ecs_init_logs() {
   try "collect Amazon ECS init logs"
+
   dstdir="${info_system}/ecs-init"
 
   if [ ! -d /var/log/ecs ]; then
@@ -437,18 +433,13 @@ get_pkglist() {
 
 get_system_services() {
   try "detect active system services list"
+
   mkdir -p "$info_system"
   case "${os_name}" in
     amazon)
-      chkconfig --list > "$info_system"/services.txt 2>&1
+      /sbin/chkconfig --list > "$info_system"/services.txt 2>&1
       ;;
-    amazon2)
-      systemctl list-units > "$info_system"/services.txt 2>&1
-      ;;
-    redhat)
-      /bin/systemctl list-units > "$info_system"/services.txt 2>&1
-      ;;
-    debian)
+    amazon2|redhat|debian)
       /bin/systemctl list-units > "$info_system"/services.txt 2>&1
       ;;
     ubuntu14)
@@ -549,36 +540,26 @@ enable_docker_debug() {
   try "enable debug mode for the Docker daemon"
 
   case "${os_name}" in
-    amazon)
+    amazon|amazon2)
       if [ -e /etc/sysconfig/docker ] && grep -q "^\\s*OPTIONS=\"-D" /etc/sysconfig/docker
       then
         info "Debug mode is already enabled."
       else
 
         if [ -e /etc/sysconfig/docker ]; then
-          echo "OPTIONS=\"-D \$OPTIONS\"" >> /etc/sysconfig/docker
+          case "${os_name}" in
+            amazon)  echo "OPTIONS=\"-D \$OPTIONS\"" >> /etc/sysconfig/docker;;
+            amazon2)  sed -i 's/^OPTIONS="\(.*\)/OPTIONS="-D \1/g' /etc/sysconfig/docker;; 
+          esac
+
           try "restart Docker daemon to enable debug mode"
-          /sbin/service docker restart
+          case "${os_name}" in
+            amazon) /sbin/service docker restart;;
+            amazon2) /bin/systemctl restart docker.service;;
+          esac
+
+          ok
         fi
-
-        ok
-
-      fi
-      ;;
-    amazon2)
-      if [ -e /etc/sysconfig/docker ] && grep -q "^\\s*OPTIONS=\"-D" /etc/sysconfig/docker
-      then
-        info "Debug mode is already enabled."
-      else
-
-        if [ -e /etc/sysconfig/docker ]; then
-          sed -i 's/^OPTIONS="\(.*\)/OPTIONS="-D \1/g' /etc/sysconfig/docker
-          try "restart Docker daemon to enable debug mode"
-          systemctl restart docker.service
-        fi
-
-        ok
-
       fi
       ;;
     *)
@@ -591,28 +572,20 @@ enable_ecs_agent_debug() {
   try "enable debug mode for the Amazon ECS Container Agent"
 
   case "${os_name}" in
-    amazon)
+    amazon|amazon2)
       if [ -e /etc/ecs/ecs.config ] &&  grep -q "^\\s*ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
       then
         info "Debug mode is already enabled."
       else
         echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
-        try "restart the Amazon ECS Container Agent to enable debug mode"
-        stop ecs; start ecs
-        ok
 
-      fi
-      ;;
-    amazon2)
-      if [ -e /etc/ecs/ecs.config ] &&  grep -q "^\\s*ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
-      then
-        info "Debug mode is already enabled."
-      else
-        echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
         try "restart the Amazon ECS Container Agent to enable debug mode"
-        systemctl restart ecs
-        ok
+        case "${os_name}" in
+          amazon) stop ecs; start ecs;;
+          amazon2) /bin/systemctl restart ecs;;
+        esac
 
+        ok
       fi
       ;;
     *)
