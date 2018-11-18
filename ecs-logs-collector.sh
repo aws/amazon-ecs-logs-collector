@@ -239,6 +239,7 @@ pack() {
 
 # Routines
 # ---------------------------------------------------------------------------------------
+
 get_sysinfo() {
   try "collect system information"
 
@@ -549,7 +550,6 @@ enable_docker_debug() {
 
   case "${os_name}" in
     amazon)
-
       if [ -e /etc/sysconfig/docker ] && grep -q "^\\s*OPTIONS=\"-D" /etc/sysconfig/docker
       then
         info "Debug mode is already enabled."
@@ -557,7 +557,6 @@ enable_docker_debug() {
 
         if [ -e /etc/sysconfig/docker ]; then
           echo "OPTIONS=\"-D \$OPTIONS\"" >> /etc/sysconfig/docker
-
           try "restart Docker daemon to enable debug mode"
           /sbin/service docker restart
         fi
@@ -567,7 +566,6 @@ enable_docker_debug() {
       fi
       ;;
     amazon2)
-
       if [ -e /etc/sysconfig/docker ] && grep -q "^\\s*OPTIONS=\"-D" /etc/sysconfig/docker
       then
         info "Debug mode is already enabled."
@@ -575,7 +573,6 @@ enable_docker_debug() {
 
         if [ -e /etc/sysconfig/docker ]; then
           sed -i 's/^OPTIONS="\(.*\)/OPTIONS="-D \1/g' /etc/sysconfig/docker
-
           try "restart Docker daemon to enable debug mode"
           systemctl restart docker.service
         fi
@@ -595,13 +592,11 @@ enable_ecs_agent_debug() {
 
   case "${os_name}" in
     amazon)
-
       if [ -e /etc/ecs/ecs.config ] &&  grep -q "^\\s*ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
       then
         info "Debug mode is already enabled."
       else
         echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
-
         try "restart the Amazon ECS Container Agent to enable debug mode"
         stop ecs; start ecs
         ok
@@ -609,13 +604,11 @@ enable_ecs_agent_debug() {
       fi
       ;;
     amazon2)
-
       if [ -e /etc/ecs/ecs.config ] &&  grep -q "^\\s*ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
       then
         info "Debug mode is already enabled."
       else
         echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
-
         try "restart the Amazon ECS Container Agent to enable debug mode"
         systemctl restart ecs
         ok
