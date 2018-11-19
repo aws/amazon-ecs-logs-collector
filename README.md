@@ -20,7 +20,7 @@ Run this project as the root user:
 # bash ecs-logs-collector.sh
 ```
 
-Confirm if the tarball file was successfully created ( it can be .tgz or .tar.gz )
+Confirm if the tarball file was successfully created (it can be .tgz or .tar.gz)
 
 ```
 #ls collect*
@@ -31,7 +31,7 @@ i-fffffffffffffffff
 ```
 ### Retrieving the logs
 
-Download the tarball using your favourite Secure Copy tool
+Download the tarball using your favourite Secure Copy tool.
 
 ## Example output
 The project can be used in normal, debug or debug-only (enable debug is only available for Amazon Linux and Amazon Linux 2).
@@ -56,7 +56,7 @@ MODES:
 ```
 
 ### Example output in normal mode
-The following output shows this project running in normal mode:
+The following output shows this project running in normal mode.
 
 ```
 # bash ecs-logs-collector.sh
