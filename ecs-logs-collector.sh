@@ -144,7 +144,7 @@ is_diskfull() {
 
   threshold=70
   i=2
-  result=$(df -kh |grep -v "Filesystem" | awk '{ print $5 }' | sed 's/%//g')
+  result=$(df -kh |grep -ve "Filesystem" -ve "loop" | awk '{ print $5 }' | sed 's/%//g')
   exceeded=0
 
   for percent in ${result}; do
@@ -271,6 +271,10 @@ get_sysinfo() {
       pkgtype="deb"
       if grep --quiet "Ubuntu 14.04" /etc/${found_file}; then
         os_name="ubuntu14"
+      elif grep --quiet "Ubuntu 16.04" /etc/${found_file}; then
+        os_name="ubuntu16"
+      elif grep --quiet "Ubuntu 18.04" /etc/${found_file}; then
+        os_name="ubuntu16"
       fi
       ;;
     *)
@@ -358,7 +362,7 @@ get_docker_logs() {
     amazon)
       cp -f /var/log/docker "$dstdir"
       ;;
-    amazon2|redhat|debian)
+    amazon2|redhat|debian|ubuntu16)
       if [ -e /bin/journalctl ]; then
         /bin/journalctl -u docker > "${dstdir}"/docker
       fi
@@ -439,7 +443,7 @@ get_system_services() {
     amazon)
       /sbin/chkconfig --list > "$info_system"/services.txt 2>&1
       ;;
-    amazon2|redhat|debian)
+    amazon2|redhat|debian|ubuntu16)
       /bin/systemctl list-units > "$info_system"/services.txt 2>&1
       ;;
     ubuntu14)
