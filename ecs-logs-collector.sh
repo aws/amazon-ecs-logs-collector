@@ -70,7 +70,7 @@ help() {
   echo "     debug       Collects 'brief' logs and also enables debug mode for the"
   echo "                 Docker daemon and the Amazon ECS Container Agent."
   echo "     debug-only  Enables debug mode for the Docker daemon and the Amazon"
-  echo "                 ECS Container Agent without collecting logs"
+  echo "                 ECS Container Agent without collecting logs."
 
 }
 
@@ -553,7 +553,7 @@ enable_docker_debug() {
         if [ -e /etc/sysconfig/docker ]; then
           case "${os_name}" in
             amazon)  echo "OPTIONS=\"-D \$OPTIONS\"" >> /etc/sysconfig/docker;;
-            amazon2)  sed -i 's/^OPTIONS="\(.*\)/OPTIONS="-D \1/g' /etc/sysconfig/docker;; 
+            amazon2)  sed -i 's/^OPTIONS="\(.*\)/OPTIONS="-D \1/g' /etc/sysconfig/docker;;
           esac
 
           try "restart Docker daemon to enable debug mode"
