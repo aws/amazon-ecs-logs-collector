@@ -1,6 +1,6 @@
 # ECS Logs Collector
 
-This project was created to collect [Amazon ECS](https://aws.amazon.com/ecs) and Operating System log files for troubleshooting Amazon ECS customer support cases.
+This project was created to collect [Amazon ECS](https://aws.amazon.com/ecs) log files and Operating System log files for troubleshooting Amazon ECS customer support cases.
 
 The following functions are supported:
 
@@ -24,10 +24,10 @@ Confirm if the tarball file was successfully created (it can be .tgz or .tar.gz)
 
 ```
 #ls collect*
-collect-i-fffffffffffffffff.tgz
+collect-i-ffffffffffffffffff.tgz
 
 collect:
-i-fffffffffffffffff
+i-ffffffffffffffffff
 ```
 ### Retrieving the logs
 
