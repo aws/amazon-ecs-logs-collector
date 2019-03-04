@@ -4,12 +4,11 @@ This project was created to collect [Amazon ECS](https://aws.amazon.com/ecs) log
 
 The following functions are supported:
 
-* Supported OS: Amazon Linux, Amazon Linux 2, Red Hat Enterprise Linux 7, CentOS, Debian 8, Ubuntu 14.04, Ubuntu 16.04, Ubuntu 18.04
 * Collect Operating System logs
 * Collect Operating System settings
 * Collect Docker logs
 * Collect Amazon ECS agent Logs
-* Enable debug mode for Docker and the Amazon ECS agent (only available for Amazon Linux and Amazon Linux 2)
+* Enable debug mode for Docker and the Amazon ECS agent (only available for Systemd init systems and Amazon Linux)
 * Create a tar zip file in the same folder as the script
 
 ## Usage
@@ -34,12 +33,12 @@ i-ffffffffffffffffff
 Download the tarball using your favourite Secure Copy tool.
 
 ## Example output
-The project can be used in normal, debug or debug-only (enable debug is only available for Amazon Linux and Amazon Linux 2).
+The project can be used in normal or enable-debug mode. Enable debug is only available for Systemd init systems and Amazon Linux.
 
 ```
 # bash ecs-logs-collector.sh --help
-USAGE: ecs-logs-collector.sh [--mode=[brief|debug|debug-only]]
-       ecs-logs-collector.sh --help
+USAGE: ./ecs-logs-collector.sh [--mode=[brief|enable-debug]]
+       ./ecs-logs-collector.sh --help
 
 OPTIONS:
      --mode  Sets the desired mode of the script. For more information,
@@ -47,12 +46,11 @@ OPTIONS:
      --help  Show this help message.
 
 MODES:
-     brief       Gathers basic operating system, Docker daemon, and Amazon
-                 ECS Container Agent logs. This is the default mode.
-     debug       Collects 'brief' logs and also enables debug mode for the
-                 Docker daemon and the Amazon ECS Container Agent.
-     debug-only  Enables debug mode for the Docker daemon and the Amazon
-                 ECS Container Agent without collecting logs.
+     brief         Gathers basic operating system, Docker daemon, and Amazon
+                   ECS Container Agent logs. This is the default mode.
+     enable-debug  Enables debug mode for the Docker daemon and the Amazon
+                   ECS Container Agent. Only supported on Systemd init systems
+                   and Amazon Linux.
 ```
 
 ### Example output in normal mode
@@ -77,20 +75,20 @@ Trying to collect Docker daemon logs ... ok
 Trying to collect Amazon ECS Container Agent logs ... ok
 Trying to collect Amazon ECS Container Agent state and config ... ok
 Trying to collect Amazon ECS Container Agent engine data ... ok
-Trying to collect Amazon ECS init logs ... ok
 Trying to archive gathered log information ... ok
 ```
 
-### Example output in debug-only mode
-The following output shows this project running in debug-only mode. Note that running in debug mode restarts Docker and the Amazon ECS agent.
+### Example output in enable-debug mode
+The following output shows this project enabling debug mode for the Docker daemon and the Amazon ECS Container Agent. This mode only works on Amazon Linux OS and Systemd init systems such as RHEL 7 and Ubuntu 16.04. Note that enable-debug mode restarts Docker and the Amazon ECS agent.
 
 ```
-# bash ecs-logs-collector.sh --mode=debug-only
+# bash ecs-logs-collector.sh --mode=enable-debug
 Trying to check if the script is running as root ... ok
-Trying to resolve instance-id ... ok
 Trying to collect system information ... ok
-Trying to enable debug mode for the Docker daemon ... Trying to restart Docker daemon to enable debug mode ... ok
-Trying to enable debug mode for the Amazon ECS Container Agent ... Trying to restart the Amazon ECS Container Agent to enable debug mode ... ok
+Trying to enable debug mode for the Docker daemon ... ok
+Trying to restart Docker daemon to enable debug mode ... ok
+Trying to enable debug mode for the Amazon ECS Container Agent ... ok
+Trying to restart the Amazon ECS Container Agent to enable debug mode ... ok
 ```
 
 ## Contributing

@@ -42,9 +42,9 @@ pack_name="collect"
 # info_system is where the checks' data is placed.
 info_system="${collectdir}/system"
 # pkgtype is the detected packaging system used on the host (eg: yum, deb)
-pkgtype=''  # defined in get_sysinfo
-# os_name is the machine name used for casing check behavior.
-os_name=''  # defined in get_sysinfo
+pkgtype=''  # defined in get_pkgtype
+# init_type is the operating system type used for casing check behavior.
+init_type=''  # defined in get_init_type
 progname='' # defined in parse_options
 
 # Script run defaults
@@ -56,7 +56,7 @@ mode='brief' # defined in parse_options
 # ---------------------------------------------------------------------------------------
 
 help() {
-  echo "USAGE: ${progname} [--mode=[brief|debug|debug-only]]"
+  echo "USAGE: ${progname} [--mode=[brief|enable-debug]]"
   echo "       ${progname} --help"
   echo ""
   echo "OPTIONS:"
@@ -65,12 +65,11 @@ help() {
   echo "     --help  Show this help message."
   echo ""
   echo "MODES:"
-  echo "     brief       Gathers basic operating system, Docker daemon, and Amazon"
-  echo "                 ECS Container Agent logs. This is the default mode."
-  echo "     debug       Collects 'brief' logs and also enables debug mode for the"
-  echo "                 Docker daemon and the Amazon ECS Container Agent."
-  echo "     debug-only  Enables debug mode for the Docker daemon and the Amazon"
-  echo "                 ECS Container Agent without collecting logs."
+  echo "     brief         Gathers basic operating system, Docker daemon, and Amazon"
+  echo "                   ECS Container Agent logs. This is the default mode."
+  echo "     enable-debug  Enables debug mode for the Docker daemon and the Amazon"
+  echo "                   ECS Container Agent. Only supported on Systemd init systems"
+  echo "                   and Amazon Linux."
 
 }
 
@@ -93,7 +92,7 @@ parse_options() {
         help && exit 0
         ;;
       *)
-        echo "Command not found: '--$param'"
+        echo "Parameter not found: '$param'"
         help && exit 1
         ;;
     esac
@@ -139,31 +138,6 @@ is_root() {
   ok
 }
 
-is_diskfull() {
-  try "check disk space usage"
-
-  threshold=70
-  i=2
-  result=$(df -kh |grep -ve "Filesystem" -ve "loop" | awk '{ print $5 }' | sed 's/%//g')
-  exceeded=0
-
-  for percent in ${result}; do
-    if [[ "${percent}" -gt "${threshold}" ]]; then
-      partition=$(df -kh | head -$i | tail -1| awk '{print $1}')
-      echo
-      warning "${partition} is ${percent}% full, please ensure adequate disk space to collect and store the log files."
-      : $((exceeded++))
-    fi
-    i=$((i+1))
-  done
-
-  if [ "$exceeded" -gt 0 ]; then
-    return 1
-  else
-    ok
-  fi
-}
-
 cleanup() {
   rm -rf "$collectdir" >/dev/null 2>&1
   rm -f "$curdir"/collect.tgz
@@ -172,7 +146,60 @@ cleanup() {
 init() {
   is_root
   try_set_instance_collectdir
-  get_sysinfo
+  get_init_type
+  get_pkgtype
+}
+
+collect_brief() {
+  init
+  is_diskfull
+  get_common_logs
+  get_kernel_logs
+  get_mounts_info
+  get_selinux_info
+  get_iptables_info
+  get_pkglist
+  get_system_services
+  get_docker_info
+  get_docker_containers_info
+  get_docker_logs
+  get_ecs_agent_logs
+  get_ecs_agent_info
+}
+
+enable_debug() {
+  is_root
+  get_init_type
+  enable_docker_debug
+  enable_ecs_agent_debug
+}
+
+# Routines
+# ---------------------------------------------------------------------------------------
+
+get_init_type() {
+  try "collect system information"
+
+  case "$(cat /proc/1/comm)" in
+    systemd)
+      init_type="systemd"
+    ;;
+    *)
+      init_type="other"
+    ;;
+  esac
+
+  ok
+}
+
+get_pkgtype() {
+  if [[ -n "$(command -v rpm)" ]]; then
+    pkgtype="rpm"
+  elif [[ -n "$(command -v dpkg)" ]]; then
+    pkgtype="dpkg"
+  else
+    pkgtype="unknown"
+  fi
 }
 
 try_set_instance_collectdir() {
@@ -199,30 +226,6 @@ try_set_instance_collectdir() {
   ok
 }
 
-collect_brief() {
-  init
-  is_diskfull
-  get_common_logs
-  get_kernel_logs
-  get_mounts_info
-  get_selinux_info
-  get_iptables_info
-  get_pkglist
-  get_system_services
-  get_docker_info
-  get_docker_containers_info
-  get_docker_logs
-  get_ecs_agent_logs
-  get_ecs_agent_info
-  get_ecs_init_logs
-}
-
-enable_debug() {
-  init
-  enable_docker_debug
-  enable_ecs_agent_debug
-}
-
 pack() {
   try "archive gathered log information"
 
@@ -237,52 +240,29 @@ pack() {
   ok
 }
 
-# Routines
-# ---------------------------------------------------------------------------------------
+is_diskfull() {
+  try "check disk space usage"
 
-get_sysinfo() {
-  try "collect system information"
+  threshold=70
+  i=2
+  result=$(df -kh | grep -ve "Filesystem" -ve "loop" | awk '{ print $5 }' | sed 's/%//g')
+  exceeded=0
 
-  found_file=""
-  for f in system-release redhat-release lsb-release debian_version; do
-    [ -f "/etc/${f}" ] && found_file="${f}" && break
+  for percent in ${result}; do
+    if [[ "${percent}" -gt "${threshold}" ]]; then
+      partition=$(df -kh | head -$i | tail -1| awk '{print $1}')
+      echo
+      warning "${partition} is ${percent}% full, please ensure adequate disk space to collect and store the log files."
+      : $((exceeded++))
+    fi
+    i=$((i+1))
   done
 
-  case "${found_file}" in
-    system-release)
-      pkgtype="rpm"
-      if grep --quiet "Amazon Linux AMI release" /etc/${found_file}; then
-        os_name="amazon"
-      elif grep --quiet "Amazon Linux 2" /etc/${found_file}; then
-        os_name="amazon2"
-      elif grep --quiet "Red Hat" /etc/${found_file}; then
-        os_name="redhat"
-      elif grep --quiet "CentOS" /etc/${found_file}; then
-        os_name="redhat"
-      fi
-      ;;
-    debian_version)
-      pkgtype="deb"
-      if grep --quiet "8" /etc/${found_file}; then
-        os_name="debian"
-      fi
-      ;;
-    lsb-release)
-      pkgtype="deb"
-      if grep --quiet "Ubuntu 14.04" /etc/${found_file}; then
-        os_name="ubuntu14"
-      elif grep --quiet "Ubuntu 16.04" /etc/${found_file}; then
-        os_name="ubuntu16"
-      elif grep --quiet "Ubuntu 18.04" /etc/${found_file}; then
-        os_name="ubuntu16"
-      fi
-      ;;
-    *)
-      die "Unsupported OS detected."
-      ;;
-  esac
-
-  ok
+  if [ "$exceeded" -gt 0 ]; then
+    return 1
+  else
+    ok
+  fi
 }
 
 get_mounts_info() {
@@ -321,8 +301,8 @@ get_iptables_info() {
   try "get iptables list"
 
   mkdir -p "$info_system"
-  /sbin/iptables -nvL -t filter > "$info_system"/iptables-filter.txt
-  /sbin/iptables -nvL -t nat  > "$info_system"/iptables-nat.txt
+  iptables -nvL -t filter > "$info_system"/iptables-filter.txt
+  iptables -nvL -t nat  > "$info_system"/iptables-nat.txt
 
   ok
 }
@@ -334,7 +314,7 @@ get_common_logs() {
   mkdir -p "$dstdir"
 
   for entry in syslog messages; do
-    [ -e "/var/log/${entry}" ] && cp -fR /var/log/${entry} "$dstdir"/
+    [ -e "/var/log/${entry}" ] && cp -f /var/log/${entry} "$dstdir"/
   done
 
   ok
@@ -358,20 +338,19 @@ get_docker_logs() {
 
   dstdir="${info_system}/docker_log"
   mkdir -p "$dstdir"
-  case "${os_name}" in
-    amazon)
-      cp -f /var/log/docker "$dstdir"
+  case "${init_type}" in
+    systemd)
+      journalctl -u docker > "${dstdir}"/docker
       ;;
-    amazon2|redhat|debian|ubuntu16)
-      if [ -e /bin/journalctl ]; then
-        /bin/journalctl -u docker > "${dstdir}"/docker
-      fi
-      ;;
-    ubuntu14)
-      cp -f /var/log/upstart/docker* "${dstdir}"
+    other)
+      for entry in docker upstart/docker; do
+        if [[ -e "/var/log/${entry}" ]]; then
+          cp -f /var/log/"${entry}" "${dstdir}"/docker
+        fi
+      done
       ;;
     *)
-      warning "The current operating system is not supported."
+      warning "the current operating system is not supported."
       return 1
       ;;
   esac
@@ -382,7 +361,7 @@ get_docker_logs() {
 get_ecs_agent_logs() {
   try "collect Amazon ECS Container Agent logs"
 
-  dstdir="${info_system}/ecs-agent"
+  dstdir="${info_system}/ecs_agent_logs"
 
   if [ ! -d /var/log/ecs ]; then
     failed "ECS log directory does not exist"
@@ -390,27 +369,8 @@ get_ecs_agent_logs() {
   fi
 
   mkdir -p "$dstdir"
-  for agent_log_file in /var/log/ecs/ecs-agent.log*; do
-    cp -fR "$agent_log_file" "$dstdir"/
-  done
 
-  ok
-}
-
-get_ecs_init_logs() {
-  try "collect Amazon ECS init logs"
-
-  dstdir="${info_system}/ecs-init"
-
-  if [ ! -d /var/log/ecs ]; then
-    failed "ECS log directory does not exist"
-    return 1
-  fi
-
-  mkdir -p "$dstdir"
-  for ecs_init_log_file in /var/log/ecs/ecs-init.log*; do
-    cp -fR "$ecs_init_log_file" "$dstdir"/
-  done
+  cp -f /var/log/ecs/* "$dstdir"/
 
   ok
 }
@@ -423,7 +383,7 @@ get_pkglist() {
     rpm)
       rpm -qa >"$info_system"/pkglist.txt 2>&1
       ;;
-    deb)
+    dpkg)
       dpkg --list > "$info_system"/pkglist.txt 2>&1
       ;;
     *)
@@ -439,17 +399,12 @@ get_system_services() {
   try "detect active system services list"
 
   mkdir -p "$info_system"
-  case "${os_name}" in
-    amazon)
-      /sbin/chkconfig --list > "$info_system"/services.txt 2>&1
+  case "${init_type}" in
+    systemd)
+      systemctl list-units > "$info_system"/services.txt 2>&1
       ;;
-    amazon2|redhat|debian|ubuntu16)
-      /bin/systemctl list-units > "$info_system"/services.txt 2>&1
-      ;;
-    ubuntu14)
-      /sbin/initctl list | awk '{ print $1 }' | xargs -n1 initctl show-config > "$info_system"/services.txt 2>&1
-      printf "\\n\\n\\n\\n" >> "$info_system"/services.txt 2>&1
-      /usr/bin/service --status-all >> "$info_system"/services.txt 2>&1
+    other)
+      service --status-all >> "$info_system"/services.txt 2>&1
       ;;
     *)
       warning "unable to determine active services."
@@ -467,8 +422,9 @@ get_system_services() {
 get_docker_info() {
   try "gather Docker daemon information"
 
+  mkdir -p "$info_system"/docker
+
   if pgrep dockerd > /dev/null ; then
-    mkdir -p "$info_system"/docker
 
     timeout 20 docker info > "$info_system"/docker/docker-info.txt 2>&1 || echo "Timed out, ignoring \"docker info output \" "
     timeout 20 docker ps --all --no-trunc > "$info_system"/docker/docker-ps.txt 2>&1 || echo "Timed out, ignoring \"docker ps --all --no-truc output \" "
@@ -520,7 +476,7 @@ get_docker_containers_info() {
 
   mkdir -p "$info_system"/docker
 
- if pgrep dockerd > /dev/null ; then
+  if pgrep dockerd > /dev/null ; then
     for i in $(docker ps -a -q); do
       timeout 10 docker inspect "$i" > "$info_system"/docker/container-"$i".txt 2>&1
       if [ $? -eq 124 ]; then
@@ -543,59 +499,73 @@ get_docker_containers_info() {
 enable_docker_debug() {
   try "enable debug mode for the Docker daemon"
 
-  case "${os_name}" in
-    amazon|amazon2)
-      if [ -e /etc/sysconfig/docker ] && grep -q "^\\s*OPTIONS=\"-D" /etc/sysconfig/docker
-      then
-        info "Debug mode is already enabled."
-      else
+  if [ -e /etc/sysconfig/docker ] && grep -q "^\\s*OPTIONS=\"-D" /etc/sysconfig/docker; then
+    info "Debug mode is already enabled."
+  else
 
-        if [ -e /etc/sysconfig/docker ]; then
-          case "${os_name}" in
-            amazon)  echo "OPTIONS=\"-D \$OPTIONS\"" >> /etc/sysconfig/docker;;
-            amazon2)  sed -i 's/^OPTIONS="\(.*\)/OPTIONS="-D \1/g' /etc/sysconfig/docker;;
-          esac
+    if [ -e /etc/sysconfig/docker ]; then
+      case "${init_type}" in
+        systemd)
+          sed -i 's/^OPTIONS="\(.*\)/OPTIONS="-D \1/g' /etc/sysconfig/docker
+          ok
 
           try "restart Docker daemon to enable debug mode"
-          case "${os_name}" in
-            amazon) /sbin/service docker restart;;
-            amazon2) /bin/systemctl restart docker.service;;
-          esac
-
+          systemctl restart docker.service
           ok
-        fi
-      fi
-      ;;
-    *)
+          ;;
+        *)
+          echo "OPTIONS=\"-D \$OPTIONS\"" >> /etc/sysconfig/docker
+
+          try "restart Docker daemon to enable debug mode"
+          service docker restart
+          ok
+
+        esac
+
+    else
       warning "the current operating system is not supported."
-      ;;
-  esac
+    fi
+  fi
 }
 
 enable_ecs_agent_debug() {
   try "enable debug mode for the Amazon ECS Container Agent"
 
-  case "${os_name}" in
-    amazon|amazon2)
-      if [ -e /etc/ecs/ecs.config ] &&  grep -q "^\\s*ECS_LOGLEVEL=debug" /etc/ecs/ecs.config
-      then
-        info "Debug mode is already enabled."
-      else
-        echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
+  if [ -e /etc/ecs/ecs.config ] &&  grep -q "^\\s*ECS_LOGLEVEL=debug" /etc/ecs/ecs.config; then
+    info "Debug mode is already enabled."
+  else
 
-        try "restart the Amazon ECS Container Agent to enable debug mode"
-        case "${os_name}" in
-          amazon) stop ecs; start ecs;;
-          amazon2) /bin/systemctl restart ecs;;
-        esac
-
-        ok
+    case "${init_type}" in
+    systemd)
+      if [ ! -d /etc/ecs ]; then
+        mkdir /etc/ecs
       fi
+
+      echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
+      ok
+
+      try "restart the Amazon ECS Container Agent to enable debug mode"
+      systemctl restart ecs
+      ok
       ;;
     *)
-      warning "the current operating system is not supported."
+      if rpm -q --quiet ecs-init; then
+        if [ ! -d /etc/ecs ]; then
+          mkdir /etc/ecs
+        fi
+
+        echo "ECS_LOGLEVEL=debug" >> /etc/ecs/ecs.config
+        ok
+
+        try "restart the Amazon ECS Container Agent to enable debug mode"
+        stop ecs; start ecs
+        ok
+      else
+        warning "the current operating system is not supported."
+      fi
       ;;
-  esac
+    esac
+  fi
 }
 
 # --------------------------------------------------------------------------------------------
@@ -608,13 +578,7 @@ case "${mode}" in
     collect_brief
     pack
     ;;
-  debug)
-    cleanup
-    collect_brief
-    enable_debug
-    pack
-    ;;
-  debug-only)
+  enable-debug)
     enable_debug
     ;;
   *)
