@@ -163,6 +163,9 @@ collect_brief() {
   get_docker_info
   get_docker_containers_info
   get_docker_logs
+  get_docker_systemd_config
+  get_docker_sysconfig
+  get_docker_daemon_json
   get_ecs_agent_logs
   get_ecs_agent_info
 }
@@ -494,6 +497,58 @@ get_docker_containers_info() {
     return 1
   fi
   ok
+}
+
+get_docker_sysconfig() {
+  try "Gathering Docker sysconfig"
+
+  if [ -e /etc/sysconfig/docker ]; then
+    mkdir -p "${info_system}"/docker
+    cp /etc/sysconfig/docker "${info_system}"/docker/sysconfig-docker
+    ok
+  else
+    info "/etc/sysconfig/docker not found"
+  fi
+
+ try "Gathering Docker storage sysconfig"
+
+  if [ -e /etc/sysconfig/docker-storage ]; then
+    mkdir -p "${info_system}"/docker
+    cp /etc/sysconfig/docker-storage "${info_system}"/docker/sysconfig-docker-storage
+    ok
+  else
+    info "/etc/sysconfig/docker-storage not found"
+  fi
+}
+
+
+get_docker_daemon_json(){
+  try "Gathering Docker daemon.json"
+
+  if [ -e /etc/docker/daemon.json ]; then
+    mkdir -p "${info_system}"/docker
+    cp /etc/docker/daemon.json "${info_system}"/docker/daemon.json
+    ok
+  else
+    info "/etc/docker/daemon.json not found"
+  fi
+}
+
+get_docker_systemd_config(){
+  try "Gathering Docker systemd unit file"
+  
+  mkdir -p "${info_system}"/docker
+  if systemctl cat docker.service > "${info_system}"/docker/docker.service 2>/dev/null; then
+   ok
+   try "Gathering containerd systemd unit file"
+    if systemctl cat containerd.service > "${info_system}"/docker/containerd.service 2>/dev/null; then
+      ok
+    else
+        warning "No containerd unit file found"
+    fi
+  else 
+    warning "Not a systemd based distro"
+  fi
 }
 
 enable_docker_debug() {
