@@ -163,6 +163,8 @@ collect_brief() {
   get_docker_info
   get_docker_containers_info
   get_docker_logs
+  get_docker_sysconfig
+  get_docker_daemon_json
   get_ecs_agent_logs
   get_ecs_agent_info
 }
@@ -495,6 +497,31 @@ get_docker_containers_info() {
   fi
   ok
 }
+
+get_docker_sysconfig() {
+  try "Gathering Docker sysconfig"
+
+  if [ -e /etc/sysconfig/docker ]; then
+    cat /etc/sysconfig/docker > $info_system/docker/sysconfig
+    ok
+  else
+    info "Sysconfig not found"
+
+  fi
+}
+
+get_docker_daemon_json(){
+  try "Gathering Docker daemon.json"
+
+  if [ -e /etc/docker/daemon.json ]; then
+    cat /etc/docker/daemon.json > $info_system/docker/daemon.json
+    ok
+  else
+    info "daemon.json not found"
+  fi
+
+}
+
 
 enable_docker_debug() {
   try "enable debug mode for the Docker daemon"
