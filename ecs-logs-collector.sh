@@ -505,7 +505,19 @@ get_docker_sysconfig() {
     cat /etc/sysconfig/docker > $info_system/docker/sysconfig
     ok
   else
-    info "Sysconfig not found"
+    info "/etc/sysconfig/docker not found"
+
+  fi
+}
+
+get_docker_sysconfig_storage() {
+  try "Gathering Docker storage sysconfig"
+
+  if [ -e /etc/sysconfig/docker-storage ]; then
+    cat /etc/sysconfig/docker-storage > $info_system/docker/sysconfig-storage
+    ok
+  else
+    info "/etc/sysconfig/docker-storage not found"
 
   fi
 }
@@ -517,7 +529,7 @@ get_docker_daemon_json(){
     cat /etc/docker/daemon.json > $info_system/docker/daemon.json
     ok
   else
-    info "daemon.json not found"
+    info "/etc/docker/daemon.json not found"
   fi
 
 }
