@@ -164,6 +164,7 @@ collect_brief() {
   get_docker_containers_info
   get_docker_logs
   get_docker_sysconfig
+  get_docker_sysconfig_storage
   get_docker_daemon_json
   get_ecs_agent_logs
   get_ecs_agent_info
