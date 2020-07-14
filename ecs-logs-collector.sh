@@ -537,7 +537,6 @@ get_docker_daemon_json(){
 get_docker_systemd_config(){
   try "Gather Docker Daemon Service file"
   
-  # Checking Rhel based distros
   if systemctl cat docker.service > "${info_system}"/docker/docker.service 2>/dev/null; then
   ok
   else 
