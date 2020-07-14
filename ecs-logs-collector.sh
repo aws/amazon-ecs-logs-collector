@@ -163,8 +163,8 @@ collect_brief() {
   get_docker_info
   get_docker_containers_info
   get_docker_logs
+  get_docker_systemd_config
   get_docker_sysconfig
-  get_docker_sysconfig_storage
   get_docker_daemon_json
   get_ecs_agent_logs
   get_ecs_agent_info
@@ -503,38 +503,54 @@ get_docker_sysconfig() {
   try "Gathering Docker sysconfig"
 
   if [ -e /etc/sysconfig/docker ]; then
-    cat /etc/sysconfig/docker > "$info_system"/docker/sysconfig
+    mkdir -p "${info_system}"/docker
+    cp /etc/sysconfig/docker "${info_system}"/docker/docker-sysconfig
     ok
   else
     info "/etc/sysconfig/docker not found"
-
   fi
-}
 
-get_docker_sysconfig_storage() {
-  try "Gathering Docker storage sysconfig"
+ try "Gathering Docker storage sysconfig"
 
   if [ -e /etc/sysconfig/docker-storage ]; then
-    cat /etc/sysconfig/docker-storage > "$info_system"/docker/sysconfig-storage
+    mkdir -p "${info_system}"/docker
+    cp /etc/sysconfig/docker-storage "${info_system}"/docker/docker-sysconfig-storage
     ok
   else
     info "/etc/sysconfig/docker-storage not found"
-
   fi
 }
+
 
 get_docker_daemon_json(){
   try "Gathering Docker daemon.json"
 
   if [ -e /etc/docker/daemon.json ]; then
-    cat /etc/docker/daemon.json > "$info_system"/docker/daemon.json
+    mkdir -p "${info_system}"/docker
+    cp /etc/docker/daemon.json "${info_system}"/docker/daemon.json
     ok
   else
     info "/etc/docker/daemon.json not found"
   fi
-
 }
 
+get_docker_systemd_config(){
+  try "Gather Docker Daemon Service file"
+  
+  # Checking Rhel based distros
+  if [ -e /usr/lib/systemd/system/docker.service ]; then
+    mkdir -p "${info_system}"/docker
+    cp /usr/lib/systemd/system/docker.service "${info_system}"/docker/docker.service
+    ok
+  #C Checking Debian based distros
+  elif [ -e /lib/systemd/system/docker.service ]; then
+    mkdir -p "${info_system}"/docker
+    cp /lib/systemd/system/docker.service "${info_system}"/docker/docker.service
+    ok
+  else 
+    warning "Not a systemd based distro"
+  fi
+}
 
 enable_docker_debug() {
   try "enable debug mode for the Docker daemon"
