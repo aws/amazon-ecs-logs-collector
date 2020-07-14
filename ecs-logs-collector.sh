@@ -535,10 +535,17 @@ get_docker_daemon_json(){
 }
 
 get_docker_systemd_config(){
-  try "Gather Docker Daemon Service file"
+  try "Gathering Docker systemd unit file"
   
+  mkdir -p "${info_system}"/docker
   if systemctl cat docker.service > "${info_system}"/docker/docker.service 2>/dev/null; then
-  ok
+   ok
+   try "Gathering containerd systemd unit file"
+    if systemctl cat containerd.service > "${info_system}"/docker/containerd.service 2>/dev/null; then
+      ok
+    else
+        warning "No containerd unit file found"
+    fi
   else 
     warning "Not a systemd based distro"
   fi
