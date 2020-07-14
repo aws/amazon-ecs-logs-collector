@@ -538,15 +538,8 @@ get_docker_systemd_config(){
   try "Gather Docker Daemon Service file"
   
   # Checking Rhel based distros
-  if [ -e /usr/lib/systemd/system/docker.service ]; then
-    mkdir -p "${info_system}"/docker
-    cp /usr/lib/systemd/system/docker.service "${info_system}"/docker/docker.service
-    ok
-  #C Checking Debian based distros
-  elif [ -e /lib/systemd/system/docker.service ]; then
-    mkdir -p "${info_system}"/docker
-    cp /lib/systemd/system/docker.service "${info_system}"/docker/docker.service
-    ok
+  if systemctl cat docker.service > "${info_system}"/docker/docker.service 2>/dev/null; then
+  ok
   else 
     warning "Not a systemd based distro"
   fi
