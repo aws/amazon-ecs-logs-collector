@@ -448,6 +448,11 @@ get_ecs_agent_info() {
     python -mjson.tool < /var/lib/ecs/data/ecs_agent_data.json > "$info_system"/ecs-agent/ecs_agent_data.txt 2>&1
   fi
 
+  if [ -e /var/lib/ecs/data/agent.db ]; then
+    cp -f /var/lib/ecs/data/agent.db "$info_system"/ecs-agent/agent.db 2>&1
+    chmod +r "$info_system"/ecs-agent/agent.db
+  fi
+
   if [ -e /etc/ecs/ecs.config ]; then
     cp -f /etc/ecs/ecs.config "$info_system"/ecs-agent/ 2>&1
     if grep --quiet "ECS_ENGINE_AUTH_DATA" "$info_system"/ecs-agent/ecs.config; then
