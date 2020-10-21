@@ -168,6 +168,7 @@ collect_brief() {
   get_docker_daemon_json
   get_ecs_agent_logs
   get_ecs_agent_info
+  get_open_files
 }
 
 enable_debug() {
@@ -306,6 +307,16 @@ get_iptables_info() {
   mkdir -p "$info_system"
   iptables -nvL -t filter > "$info_system"/iptables-filter.txt
   iptables -nvL -t nat  > "$info_system"/iptables-nat.txt
+
+  ok
+}
+
+get_open_files() {
+  try "get open files list"
+
+  mkdir -p "$info_system"
+  for d in /proc/*/fd; do echo "$d"; find "$d" -maxdepth 1 | wc -l; done > "$info_system"/open-file-counts.txt
+  ls -l /proc/*/fd > "$info_system"/open-file-details.txt
 
   ok
 }
@@ -544,7 +555,7 @@ get_docker_systemd_config(){
   if [[ "$init_type" != "systemd" ]]; then
     return 0
   fi
-   
+
   try "collect Docker systemd unit file"
 
   mkdir -p "${info_system}"/docker
@@ -554,8 +565,8 @@ get_docker_systemd_config(){
     rm -f "$info_system/docker/docker.service"
     warning "docker.service not found"
   fi
-  
-  try "collect containerd systemd unit file"  
+
+  try "collect containerd systemd unit file"
   if systemctl cat containerd.service > "${info_system}"/docker/containerd.service 2>/dev/null; then
    ok
   else
