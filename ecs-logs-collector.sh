@@ -348,13 +348,14 @@ get_kernel_logs() {
 }
 
 get_docker_logs() {
-  try "collect Docker daemon logs"
+  try "collect Docker and containerd daemon logs"
 
   dstdir="${info_system}/docker_log"
   mkdir -p "$dstdir"
   case "${init_type}" in
     systemd)
       journalctl -u docker > "${dstdir}"/docker
+      journalctl -u containerd > "${info_system}"/containerd.log
       ;;
     other)
       for entry in docker upstart/docker; do
