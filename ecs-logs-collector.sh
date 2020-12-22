@@ -385,7 +385,7 @@ get_ecs_agent_logs() {
 
   mkdir -p "$dstdir"
 
-  cp -f /var/log/ecs/* "$dstdir"/
+  cp -Rf /var/log/ecs/* "$dstdir"/
 
   ok
 }
