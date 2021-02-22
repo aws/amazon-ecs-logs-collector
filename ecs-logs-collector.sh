@@ -442,9 +442,10 @@ get_docker_info() {
   if pgrep dockerd > /dev/null ; then
 
     timeout 20 docker info > "$info_system"/docker/docker-info.txt 2>&1 || echo "Timed out, ignoring \"docker info output \" "
-    timeout 20 docker ps --all --no-trunc > "$info_system"/docker/docker-ps.txt 2>&1 || echo "Timed out, ignoring \"docker ps --all --no-truc output \" "
+    timeout 20 docker ps --all --no-trunc > "$info_system"/docker/docker-ps.txt 2>&1 || echo "Timed out, ignoring \"docker ps --all --no-trunc output \" "
     timeout 20 docker images > "$info_system"/docker/docker-images.txt 2>&1 || echo "Timed out, ignoring \"docker images output \" "
     timeout 20 docker version > "$info_system"/docker/docker-version.txt 2>&1 || echo "Timed out, ignoring \"docker version output \" "
+    timeout 60 docker stats --all --no-trunc --no-stream > "$info_system"/docker/docker-stats.txt 2>&1 || echo "Timed out, ignoring \"docker stats\" output"
 
     ok
   else

@@ -15,7 +15,7 @@ The following functions are supported:
 Run this project as the root user:
 
 ```
-# curl -O https://raw.githubusercontent.com/awslabs/ecs-logs-collector/master/ecs-logs-collector.sh
+# curl -O https://raw.githubusercontent.com/aws/amazon-ecs-logs-collector/master/ecs-logs-collector.sh
 # bash ecs-logs-collector.sh
 ```
 
