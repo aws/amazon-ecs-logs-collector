@@ -167,6 +167,7 @@ collect_brief() {
   get_docker_sysconfig
   get_docker_daemon_json
   get_ecs_agent_logs
+  get_amazon_logs
   get_ecs_agent_info
   get_open_files
 }
@@ -369,6 +370,27 @@ get_docker_logs() {
       return 1
       ;;
   esac
+
+  ok
+}
+
+get_amazon_logs() {
+  try "collect Amazon log directory"
+
+  dstdir="${info_system}/amazon_logs"
+
+  if [ ! -d /var/log/amazon ]; then
+    failed "amazon log directory does not exist"
+    return 1
+  fi
+
+  mkdir -p "$dstdir"
+
+  cp -f -r /var/log/amazon/* "$dstdir"/
+
+  # add permission for all users to read the files grabbed from /var/log/amazon.
+  find "$dstdir" -type d -exec chmod 755 {} +
+  find "$dstdir" -type f -exec chmod 644 {} +
 
   ok
 }

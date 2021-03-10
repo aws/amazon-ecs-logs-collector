@@ -15,11 +15,8 @@ Please provide the following information:
 <!-- How was this tested? -->
 - [ ] Works properly on Amazon Linux
 - [ ] Works properly on Amazon Linux 2
-- [ ] Works properly on RHEL 7
-- [ ] Works properly on Debian 8
-- [ ] Works properly on Ubuntu 14.04
-- [ ] Works properly on Ubuntu 16.04
-- [ ] Works properly on Ubuntu 18.04
+- [ ] Works properly on Ubuntu 20.04
+- [ ] Works properly on CentOS 8
 
 New tests cover the changes: <!-- yes|no -->
 
