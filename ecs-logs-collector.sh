@@ -169,6 +169,7 @@ collect_brief() {
   get_ecs_agent_logs
   get_ecs_agent_info
   get_open_files
+  get_os_release
 }
 
 enable_debug() {
@@ -209,21 +210,27 @@ get_pkgtype() {
 try_set_instance_collectdir() {
   try "resolve instance-id"
 
-  if command -v curl > /dev/null; then
-    instance_id=$(curl --max-time 3 -s http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
-    if [[ -n "$instance_id" ]]; then
-      # Put logs into a directory for this instance.
-      info_system="${collectdir}/${instance_id}"
-      # And in a pack that includes the instance id in its name.
-      pack_name="collect-${instance_id}"
-      mkdir -p "${info_system}"
-      echo "$instance_id" > "$info_system"/instance-id.txt
-    else
-      warning "unable to resolve instance metadata"
-      return 1
+  if [ -f /var/lib/amazon/ssm/registration ]; then
+    info "SSM managed instance detected, getting managed instance id"
+    if command -v jq > /dev/null; then
+      instance_id=$(jq -r ".ManagedInstanceID" < /var/lib/amazon/ssm/registration)
     fi
+  fi
+
+  if test -z "$instance_id" && command -v curl > /dev/null; then
+    info "getting instance id from ec2 metadata endpoint"
+    instance_id=$(curl --max-time 3 -s http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
+  fi
+
+  if [ -n "$instance_id" ]; then
+    # Put logs into a directory for this instance.
+    info_system="${collectdir}/${instance_id}"
+    # And in a pack that includes the instance id in its name.
+    pack_name="collect-${instance_id}"
+    mkdir -p "${info_system}"
+    echo "$instance_id" > "$info_system"/instance-id.txt
   else
-    warning "curl is unavailable for querying"
+    warning "unable to get instance id"
     return 1
   fi
 
@@ -574,6 +581,17 @@ get_docker_systemd_config(){
   else
     rm -f "$info_system/docker/containerd.service"
     warning "containerd.service not found"
+  fi
+}
+
+get_os_release(){
+  try "collect /etc/os-release"
+
+  if [ -f /etc/os-release ]; then
+    cat /etc/os-release > "${info_system}"/os-release
+    ok
+  else
+    info "/etc/os-release not found"
   fi
 }
 
