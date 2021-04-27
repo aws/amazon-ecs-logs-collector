@@ -70,7 +70,6 @@ help() {
   echo "     enable-debug  Enables debug mode for the Docker daemon and the Amazon"
   echo "                   ECS Container Agent. Only supported on Systemd init systems"
   echo "                   and Amazon Linux."
-
 }
 
 parse_options() {
@@ -170,6 +169,9 @@ collect_brief() {
   get_ecs_agent_info
   get_open_files
   get_os_release
+  get_uname_info
+  get_dmidecode_info
+  get_lsmod_info
 }
 
 enable_debug() {
@@ -181,6 +183,41 @@ enable_debug() {
 
 # Routines
 # ---------------------------------------------------------------------------------------
+
+# uname gets basic system and kernel information.
+get_uname_info() {
+  try "get uname kernal info"
+
+  mkdir -p "$info_system"
+  uname -a > "$info_system"/uname.txt
+
+  ok
+}
+
+# dmidecode is a tool sometimes installed on VMs that provides detailed
+# information about the VM hypervisor, underlying hardware, and system.
+get_dmidecode_info() {
+  try "get dmidecode info"
+
+  if command -v dmidecode &>/dev/null; then
+    mkdir -p "$info_system"
+    dmidecode > "$info_system"/dmidecode.txt
+  fi
+
+  ok
+}
+
+# lsmod lists loadable kernel modules.
+get_lsmod_info() {
+  try "get lsmod info"
+
+  if command -v lsmod &>/dev/null; then
+    mkdir -p "$info_system"
+    lsmod > "$info_system"/lsmod.txt
+  fi
+
+  ok
+}
 
 get_init_type() {
   try "collect system information"
