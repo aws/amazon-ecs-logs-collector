@@ -186,7 +186,7 @@ enable_debug() {
 
 # uname gets basic system and kernel information.
 get_uname_info() {
-  try "get uname kernal info"
+  try "get uname kernel info"
 
   mkdir -p "$info_system"
   uname -a > "$info_system"/uname.txt
