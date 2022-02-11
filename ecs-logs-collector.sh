@@ -172,6 +172,7 @@ collect_brief() {
   get_uname_info
   get_dmidecode_info
   get_lsmod_info
+  get_cgroupv2_events
 }
 
 enable_debug() {
@@ -630,6 +631,29 @@ get_os_release(){
   else
     info "/etc/os-release not found"
   fi
+}
+
+get_cgroupv2_events(){
+  # cgroup v2 is only supported on systemd systems
+  if [[ "$init_type" != "systemd" ]]; then
+    return 0
+  fi
+  # this file will only exist on systems with cgroup v2 enabled
+  if [ ! -f /sys/fs/cgroup/cgroup.controllers ]; then
+    return 0
+  fi
+  try "collect cgroupv2 events"
+
+  local outfile="${info_system}"/cgroupv2.events
+  touch $outfile
+  # find cgroup memory event files for all ecs tasks with task resource limits and all
+  # docker containers running on the system.
+  for eventfile in $(find /sys/fs/cgroup/ -type f -name "memory*events" | grep -e "docker-" -e "ecstask"); do
+    echo "$eventfile" >> $outfile
+    cat $eventfile >> $outfile
+    echo "" >> $outfile
+  done
+  ok
 }
 
 enable_docker_debug() {
