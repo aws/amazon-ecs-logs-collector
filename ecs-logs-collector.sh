@@ -43,6 +43,8 @@ pack_name="collect"
 info_system="${collectdir}/system"
 # pkgtype is the detected packaging system used on the host (eg: yum, deb)
 pkgtype=''  # defined in get_pkgtype
+# jsonformatter is the detected tool to process JSON installed on the host
+jsonformatter=''
 # init_type is the operating system type used for casing check behavior.
 init_type=''  # defined in get_init_type
 progname='' # defined in parse_options
@@ -147,6 +149,7 @@ init() {
   try_set_instance_collectdir
   get_init_type
   get_pkgtype
+  get_jsonformatter
 }
 
 collect_brief() {
@@ -242,6 +245,16 @@ get_pkgtype() {
     pkgtype="dpkg"
   else
     pkgtype="unknown"
+  fi
+}
+
+get_jsonformatter(){
+  if [[ -n "$(command -v python)" ]]; then
+    jsonformatter="python -mjson.tool"
+  elif [[ -n "$(command -v jq)" ]]; then
+    jsonformatter="jq"
+  else
+    jsonformatter=""
   fi
 }
 
@@ -503,7 +516,11 @@ get_ecs_agent_info() {
 
   mkdir -p "$info_system"/ecs-agent
   if [ -e /var/lib/ecs/data/ecs_agent_data.json ]; then
-    python -mjson.tool < /var/lib/ecs/data/ecs_agent_data.json > "$info_system"/ecs-agent/ecs_agent_data.txt 2>&1
+    cp -f /var/lib/ecs/data/ecs_agent_data.json "$info_system"/ecs-agent/ecs_agent_data.txt 2>&1
+    if [ -n "$jsonformatter" ]; then
+      cat "$info_system"/ecs-agent/ecs_agent_data.txt | $jsonformatter > "$info_system"/ecs-agent/ecs_agent_data_tmp.txt
+      mv "$info_system"/ecs-agent/ecs_agent_data_tmp.txt "$info_system"/ecs-agent/ecs_agent_data.txt
+    fi	  
   fi
 
   if [ -e /var/lib/ecs/data/agent.db ]; then
@@ -523,7 +540,11 @@ get_ecs_agent_info() {
 
   if pgrep agent > /dev/null ; then
     if command -v curl >/dev/null; then
-      if curl --max-time 3 -s http://localhost:51678/v1/tasks | python -mjson.tool > "$info_system"/ecs-agent/agent-running-info.txt 2>&1; then
+      if curl --max-time 3 -s http://localhost:51678/v1/tasks > "$info_system"/ecs-agent/agent-running-info.txt 2>&1; then
+        if [ -n "$jsonformatter" ]; then
+          cat "$info_system"/ecs-agent/agent-running-info.txt | $jsonformatter > "$info_system"/ecs-agent/agent-running-info-tmp.txt
+          mv "$info_system"/ecs-agent/agent-running-info-tmp.txt "$info_system"/ecs-agent/agent-running-info.txt
+        fi
           ok
       else
           warning "failed to get agent data"
