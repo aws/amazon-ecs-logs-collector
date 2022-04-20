@@ -176,6 +176,7 @@ collect_brief() {
   get_dmidecode_info
   get_lsmod_info
   get_cgroupv2_events
+  get_systemd_slice_info
 }
 
 enable_debug() {
@@ -520,7 +521,7 @@ get_ecs_agent_info() {
     if [ -n "$jsonformatter" ]; then
       cat "$info_system"/ecs-agent/ecs_agent_data.txt | $jsonformatter > "$info_system"/ecs-agent/ecs_agent_data_tmp.txt
       mv "$info_system"/ecs-agent/ecs_agent_data_tmp.txt "$info_system"/ecs-agent/ecs_agent_data.txt
-    fi	  
+    fi
   fi
 
   if [ -e /var/lib/ecs/data/agent.db ]; then
@@ -674,6 +675,25 @@ get_cgroupv2_events(){
     cat $eventfile >> $outfile
     echo "" >> $outfile
   done
+  ok
+}
+
+get_systemd_slice_info(){
+  if [[ "$init_type" != "systemd" ]]; then
+    return 0
+  fi
+  try "collect systemd slice info"
+
+  # system.slice will exist on all systemd systems:
+  local outfile="${info_system}"/system.slice
+  touch $outfile
+  systemctl status system.slice >$outfile
+  # ecstasks.slice will only exist if we're using the systemd cgroup driver and cgroups v2:
+  if systemctl status ecstasks.slice &>/dev/null; then
+    local outfile="${info_system}"/ecstasks.slice
+    touch $outfile
+    systemctl status ecstasks.slice >$outfile
+  fi
   ok
 }
 
