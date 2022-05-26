@@ -7,6 +7,7 @@ The following functions are supported:
 * Collect Operating System logs
 * Collect Operating System settings
 * Collect Docker logs
+* Collect Cloud-init logs
 * Collect Amazon ECS agent Logs
 * Enable debug mode for Docker and the Amazon ECS agent (only available for Systemd init systems and Amazon Linux)
 * Create a tar zip file in the same folder as the script
@@ -73,6 +74,7 @@ Trying to gather Docker daemon information ... ok
 Trying to inspect all Docker containers ... ok
 Trying to collect Docker daemon logs ... ok
 Trying to collect Amazon ECS Container Agent logs ... ok
+Trying to collect Cloud Init logs ... ok
 Trying to collect Amazon ECS Container Agent state and config ... ok
 Trying to collect Amazon ECS Container Agent engine data ... ok
 Trying to archive gathered log information ... ok

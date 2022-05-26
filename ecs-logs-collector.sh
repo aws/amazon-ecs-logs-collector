@@ -169,6 +169,7 @@ collect_brief() {
   get_docker_sysconfig
   get_docker_daemon_json
   get_ecs_agent_logs
+  get_cloud_init_logs
   get_ecs_agent_info
   get_open_files
   get_os_release
@@ -445,6 +446,19 @@ get_ecs_agent_logs() {
   mkdir -p "$dstdir"
 
   cp -f /var/log/ecs/* "$dstdir"/
+
+  ok
+}
+
+get_cloud_init_logs() {
+  try "collect Cloud Init logs"
+
+  dstdir="${info_system}/cloud_init_logs"
+
+  mkdir -p "$dstdir"
+
+  cp -f /var/log/cloud-init.log "$dstdir"/
+  cp -f /var/log/cloud-init-output.log "$dstdir"/
 
   ok
 }
