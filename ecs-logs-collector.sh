@@ -177,6 +177,7 @@ collect_brief() {
   get_lsmod_info
   get_cgroupv2_events
   get_systemd_slice_info
+  get_veth_info
 }
 
 enable_debug() {
@@ -340,6 +341,20 @@ get_mounts_info() {
     lvdisplay > "$info_system"/lvdisplay.txt
     vgdisplay > "$info_system"/vgdisplay.txt
     pvdisplay > "$info_system"/pvdisplay.txt
+  fi
+
+  ok
+}
+
+get_veth_info() {
+  try "get veth info"
+
+  if command -v brctl >/dev/null; then
+    brctl show > "$info_system"/brctlshow.txt
+  fi
+
+  if command -v ip >/dev/null; then
+    ip addr show > "$info_system"/ipaddrshow.txt
   fi
 
   ok
