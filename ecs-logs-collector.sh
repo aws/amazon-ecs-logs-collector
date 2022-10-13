@@ -785,7 +785,7 @@ enable_ecs_agent_debug() {
   fi
 }
 
-# nvidia-smi is a tool available on GOU based AMIs provides detailed
+# nvidia-smi is a tool available on GPU based AMIs provides detailed
 # information about the GPU present on the VM.
 get_gpu_info() {
   try "get gpu info"
