@@ -71,10 +71,23 @@ Trying to detect installed packages ... ok
 Trying to detect active system services list ... ok
 Trying to gather Docker daemon information ... ok
 Trying to inspect all Docker containers ... ok
-Trying to collect Docker daemon logs ... ok
+Trying to collect Docker and containerd daemon logs ... ok
+Trying to collect Docker systemd unit file ... ok
+Trying to collect containerd systemd unit file ... ok
+Trying to collect Docker sysconfig ... ok
+Trying to collect Docker storage sysconfig ... ok
+Trying to collect Docker daemon.json ... ok
 Trying to collect Amazon ECS Container Agent logs ... ok
 Trying to collect Amazon ECS Container Agent state and config ... ok
 Trying to collect Amazon ECS Container Agent engine data ... ok
+Trying to get open files list ... ok
+Trying to collect /etc/os-release ... ok
+Trying to get uname kernel info ... ok
+Trying to get dmidecode info ... ok
+Trying to get lsmod info ... ok
+Trying to collect systemd slice info ... ok
+Trying to get veth info ... ok
+Trying to get gpu info ... ok
 Trying to archive gathered log information ... ok
 ```
 
