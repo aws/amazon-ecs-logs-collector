@@ -794,7 +794,6 @@ get_gpu_info() {
     mkdir -p "$info_system"/gpu
     nvidia-smi -L > "$info_system"/gpu/gpu-list.txt
     nvidia-smi -q > "$info_system"/gpu/gpu-info.txt
-
   fi
 
   ok
