@@ -23,7 +23,7 @@ Confirm if the tarball file was successfully created (it can be .tgz or .tar.gz)
 
 ```
 #ls collect*
-collect-i-ffffffffffffffffff.tgz
+collect-i-ffffffffffffffffff-YYYYMMDDHHmm.tgz
 
 collect:
 i-ffffffffffffffffff
