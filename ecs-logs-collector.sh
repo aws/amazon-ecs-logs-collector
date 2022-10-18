@@ -178,6 +178,7 @@ collect_brief() {
   get_cgroupv2_events
   get_systemd_slice_info
   get_veth_info
+  get_gpu_info
 }
 
 enable_debug() {
@@ -784,6 +785,19 @@ enable_ecs_agent_debug() {
   fi
 }
 
+# nvidia-smi is a tool available on GPU based AMIs provides detailed
+# information about the GPU present on the VM.
+get_gpu_info() {
+  try "get gpu info"
+
+  if command -v nvidia-smi &>/dev/null; then
+    mkdir -p "$info_system"/gpu
+    nvidia-smi -L > "$info_system"/gpu/gpu-list.txt
+    nvidia-smi -q > "$info_system"/gpu/gpu-info.txt
+  fi
+
+  ok
+}
 # --------------------------------------------------------------------------------------------
 
 parse_options "$@"
