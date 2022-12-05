@@ -32,9 +32,13 @@ curdir="$(dirname "$0")"
 # collectdir is where all collected informaton is placed under. This
 # services as the top level for this script's operation.
 readonly collectdir="${curdir}/collect"
+
+# datetime is the date and time when the script was executed used in pack()
+datetime=`date +%Y%m%d%H%M`
+
 # pack_name is the name of the resulting tarball. This will generally
-# be collect-i-ffffffffffffffffff, where i-ffffffffffffffffff is the
-# instance id.
+# be collect-i-ffffffffffffffffff-YYYYMMDDHHmm, where i-ffffffffffffffffff is the
+# instance id and YYYYMMDDHHmm is date and time.
 pack_name="collect"
 
 # Shared check variables
@@ -48,6 +52,8 @@ jsonformatter=''
 # init_type is the operating system type used for casing check behavior.
 init_type=''  # defined in get_init_type
 progname='' # defined in parse_options
+# dstdir is the destination where the logs collected are placed.
+dstdir=''  # defined in several routines
 
 # Script run defaults
 
@@ -300,7 +306,7 @@ pack() {
 
   cd "$curdir" || { echo "cd failed."; exit 1; }
 
-  ${tar_bin} -cvzf "$curdir/$pack_name".tgz "$collectdir" > /dev/null 2>&1
+  ${tar_bin} -cvzf "$curdir/$pack_name-$datetime".tgz "$collectdir" > /dev/null 2>&1
 
   ok
 }
