@@ -406,12 +406,18 @@ get_open_files() {
 get_common_logs() {
   try "collect common operating system logs"
 
+  mkdir -p "$info_system"
+  if command -v journalctl >/dev/null; then
+      journalctl > "${info_system}"/system.log
+  fi
+
   dstdir="${info_system}/var_log"
   mkdir -p "$dstdir"
 
   for entry in syslog messages; do
     [ -e "/var/log/${entry}" ] && cp -f /var/log/${entry} "$dstdir"/
   done
+
 
   ok
 }
