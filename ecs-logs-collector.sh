@@ -278,7 +278,9 @@ try_set_instance_collectdir() {
 
   if test -z "$instance_id" && command -v curl > /dev/null; then
     info "getting instance id from ec2 metadata endpoint"
-    instance_id=$(curl --max-time 3 -s http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
+    imds="http://169.254.169.254/latest"
+    token=$(curl -sS --retry 3 -X PUT "${imds}/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" 2>/dev/null)
+    instance_id=$(curl -sS --retry 3 -H "X-aws-ec2-metadata-token: $token" "${imds}/meta-data/instance-id" 2>/dev/null)
   fi
 
   if [ -n "$instance_id" ]; then
