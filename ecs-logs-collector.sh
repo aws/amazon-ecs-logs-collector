@@ -418,7 +418,6 @@ get_common_logs() {
     [ -e "/var/log/${entry}" ] && cp -f /var/log/${entry} "$dstdir"/
   done
 
-
   ok
 }
 

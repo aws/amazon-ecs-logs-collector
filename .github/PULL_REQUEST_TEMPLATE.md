@@ -14,6 +14,7 @@ Please provide the following information:
 ### Testing
 <!-- How was this tested? -->
 - [ ] Works properly on Amazon Linux 2
+- [ ] Works properly on Amazon Linux 2023
 - [ ] Works properly on Ubuntu 20.04
 - [ ] Works properly on CentOS 8
 
