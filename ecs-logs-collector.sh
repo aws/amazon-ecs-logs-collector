@@ -808,6 +808,15 @@ get_gpu_info() {
     nvidia-smi -q > "$info_system"/gpu/gpu-info.txt
   fi
 
+  # get open kernel module version
+  if [ -d /var/lib/dkms-archive/nvidia-open ]; then
+    ls /var/lib/dkms-archive/nvidia-open > "$info_system"/gpu/gpu-open-module.txt
+  fi
+
+  if command -v modinfo nvidia &>/dev/null; then
+    modinfo nvidia > "$info_system"/gpu/gpu-installed-kmod.txt
+  fi
+
   ok
 }
 # --------------------------------------------------------------------------------------------
