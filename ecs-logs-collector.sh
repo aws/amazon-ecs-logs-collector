@@ -552,19 +552,6 @@ get_ecs_agent_info() {
     fi
   fi
 
-  if [ -e /var/lib/ecs/data/agent.db ]; then
-    cp -f /var/lib/ecs/data/agent.db "$info_system"/ecs-agent/agent.db 2>&1
-    chmod +r "$info_system"/ecs-agent/agent.db
-  fi
-
-  if [ -e /etc/ecs/ecs.config ]; then
-    cp -f /etc/ecs/ecs.config "$info_system"/ecs-agent/ 2>&1
-    if grep --quiet "ECS_ENGINE_AUTH_DATA" "$info_system"/ecs-agent/ecs.config; then
-      sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' "$info_system"/ecs-agent/ecs.config
-    fi
-  fi
-  ok
-
   try "collect Amazon ECS Container Agent engine data"
 
   if pgrep agent > /dev/null ; then
