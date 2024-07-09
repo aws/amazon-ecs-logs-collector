@@ -581,6 +581,11 @@ get_docker_containers_info() {
 
   if pgrep dockerd > /dev/null ; then
     for i in $(docker ps -a -q); do
+      container_name=$(docker inspect --format '{{ index . "Name" }}' "$i")
+      if [ "$container_name" != "/ecs-agent" ]; then
+        continue
+      fi
+
       timeout 10 docker inspect "$i" > "$info_system"/docker/container-"$i".txt 2>&1
       if [ $? -eq 124 ]; then
         touch "$info_system"/docker/container-inspect-timed-out.txt
