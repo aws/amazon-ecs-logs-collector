@@ -552,6 +552,17 @@ get_ecs_agent_info() {
     fi
   fi
 
+  if [ -e /etc/ecs/ecs.config ]; then
+    cp -f /etc/ecs/ecs.config "$info_system"/ecs-agent/ 2>&1
+    keys_to_remove=("ECS_ENGINE_AUTH_DATA" "AWS_ACCESS_KEY_ID" "AWS_SECRET_ACCESS_KEY" "AWS_SESSION_TOKEN")
+    for key in "${keys_to_remove[@]}"; do
+      if grep --quiet "${key}" "$info_system"/ecs-agent/ecs.config; then
+        sed -i "s/${key}=.*/${key}=/g" "$info_system"/ecs-agent/ecs.config
+      fi
+    done
+  fi
+  ok
+
   try "collect Amazon ECS Container Agent engine data"
 
   if pgrep agent > /dev/null ; then
