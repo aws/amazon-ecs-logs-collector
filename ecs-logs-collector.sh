@@ -557,7 +557,7 @@ get_ecs_agent_info() {
     keys_to_remove=("ECS_ENGINE_AUTH_DATA" "AWS_ACCESS_KEY_ID" "AWS_SECRET_ACCESS_KEY" "AWS_SESSION_TOKEN")
     for key in "${keys_to_remove[@]}"; do
       if grep --quiet "${key}" "$info_system"/ecs-agent/ecs.config; then
-        sed -i "s/${key}=.*/${key}=/g" "$info_system"/ecs-agent/ecs.config
+        sed -i "s/${key}=.*/${key}={REDACTED}/g" "$info_system"/ecs-agent/ecs.config
       fi
     done
   fi
@@ -592,11 +592,6 @@ get_docker_containers_info() {
 
   if pgrep dockerd > /dev/null ; then
     for i in $(docker ps -a -q); do
-      container_name=$(docker inspect --format '{{ index . "Name" }}' "$i")
-      if [ "$container_name" != "/ecs-agent" ]; then
-        continue
-      fi
-
       timeout 10 docker inspect "$i" > "$info_system"/docker/container-"$i".txt 2>&1
       if [ $? -eq 124 ]; then
         touch "$info_system"/docker/container-inspect-timed-out.txt
@@ -604,9 +599,10 @@ get_docker_containers_info() {
         return 1
       fi
 
-      if grep --quiet "ECS_ENGINE_AUTH_DATA" "$info_system"/docker/container-"$i".txt; then
-        sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' "$info_system"/docker/container-"$i".txt
-      fi
+      env_vars=$(docker inspect --format='{{range $element := .Config.Env}}{{println $element}}{{end}}' "$i" | while IFS='=' read -r name value; do echo "$name"; done)
+      for env_var in $env_vars; do
+        sed -i "s/${env_var}=.*/${env_var}={REDACTED}\"/g" "$info_system"/docker/container-"$i".txt
+      done
     done
   else
     warning "the Docker daemon is not running." | tee "$info_system"/docker/docker-not-running.txt
