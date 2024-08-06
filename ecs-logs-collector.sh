@@ -58,6 +58,43 @@ dstdir=''  # defined in several routines
 
 mode='brief' # defined in parse_options
 
+# Sanitization Variables
+
+vars_to_redact=("ECS_ENGINE_AUTH_DATA" "AWS_ACCESS_KEY_ID" "AWS_SECRET_ACCESS_KEY" "AWS_SESSION_TOKEN")
+
+declare -A ecs_config_allowlist
+ecs_config_allowlist=(
+    ["ECS_CLUSTER"]=1                            ["ECS_RESERVED_PORTS"]=1                           ["ECS_RESERVED_PORTS_UDP"]=1
+    ["ECS_ENGINE_AUTH_TYPE"]=1                   ["AWS_DEFAULT_REGION"]=1                           ["DOCKER_HOST"]=1
+    ["ECS_LOGLEVEL"]=1                           ["ECS_LOGLEVEL_ON_INSTANCE"]=1                     ["ECS_LOGFILE"]=1
+    ["ECS_CHECKPOINT"]=1                         ["ECS_DATADIR"]=1                                  ["ECS_UPDATES_ENABLED"]=1
+    ["ECS_DISABLE_METRICS"]=1                    ["ECS_POLL_METRICS"]=1                             ["ECS_POLLING_METRICS_WAIT_DURATION"]=1
+    ["ECS_PULL_DEPENDENT_CONTAINERS_UPFRONT"]=1  ["ECS_RESERVED_MEMORY"]=1                          ["ECS_AVAILABLE_LOGGING_DRIVERS"]=1
+    ["ECS_DISABLE_PRIVILEGED"]=1                 ["ECS_SELINUX_CAPABLE"]=1                          ["ECS_APPARMOR_CAPABLE"]=1
+    ["ECS_ENGINE_TASK_CLEANUP_WAIT_DURATION"]=1  ["ECS_ENGINE_TASK_CLEANUP_WAIT_DURATION_JITTER"]=1 ["ECS_MANIFEST_PULL_TIMEOUT"]=1
+    ["ECS_CONTAINER_STOP_TIMEOUT"]=1             ["ECS_CONTAINER_START_TIMEOUT"]=1                  ["ECS_CONTAINER_CREATE_TIMEOUT"]=1
+    ["ECS_ENABLE_TASK_IAM_ROLE"]=1               ["ECS_ENABLE_TASK_IAM_ROLE_NETWORK_HOST"]=1        ["ECS_DISABLE_IMAGE_CLEANUP"]=1
+    ["ECS_IMAGE_CLEANUP_INTERVAL"]=1             ["ECS_IMAGE_MINIMUM_CLEANUP_AGE"]=1                ["NON_ECS_IMAGE_MINIMUM_CLEANUP_AGE"]=1
+    ["ECS_NUM_IMAGES_DELETE_PER_CYCLE"]=1        ["ECS_IMAGE_PULL_BEHAVIOR"]=1                      ["ECS_IMAGE_PULL_INACTIVITY_TIMEOUT"]=1
+    ["ECS_IMAGE_PULL_TIMEOUT"]=1                 ["ECS_INSTANCE_ATTRIBUTES"]=1                      ["ECS_ENABLE_TASK_ENI"]=1
+    ["ECS_ENABLE_HIGH_DENSITY_ENI"]=1            ["ECS_CNI_PLUGINS_PATH"]=1                         ["ECS_AWSVPC_BLOCK_IMDS"]=1
+    ["ECS_AWSVPC_ADDITIONAL_LOCAL_ROUTES"]=1     ["ECS_ENABLE_CONTAINER_METADATA"]=1                ["ECS_HOST_DATA_DIR"]=1
+    ["ECS_ENABLE_TASK_CPU_MEM_LIMIT"]=1          ["ECS_CGROUP_PATH"]=1                              ["ECS_CGROUP_CPU_PERIOD"]=1
+    ["ECS_AGENT_HEALTHCHECK_HOST"]=1             ["ECS_ENABLE_CPU_UNBOUNDED_WINDOWS_WORKAROUND"]=1  ["ECS_ENABLE_MEMORY_UNBOUNDED_WINDOWS_WORKAROUND"]=1
+    ["ECS_TASK_METADATA_RPS_LIMIT"]=1            ["ECS_SHARED_VOLUME_MATCH_FULL_CONFIG"]=1          ["ECS_CONTAINER_INSTANCE_PROPAGATE_TAGS_FROM"]=1
+    ["ECS_CONTAINER_INSTANCE_TAGS"]=1            ["ECS_ENABLE_UNTRACKED_IMAGE_CLEANUP"]=1           ["ECS_EXCLUDE_UNTRACKED_IMAGE"]=1
+    ["ECS_DISABLE_DOCKER_HEALTH_CHECK"]=1        ["ECS_NVIDIA_RUNTIME"]=1                           ["ECS_ALTERNATE_CREDENTIAL_PROFILE"]=1
+    ["ECS_ENABLE_SPOT_INSTANCE_DRAINING"]=1      ["ECS_LOG_ROLLOVER_TYPE"]=1                        ["ECS_LOG_OUTPUT_FORMAT"]=1
+    ["ECS_LOG_MAX_FILE_SIZE_MB"]=1               ["ECS_LOG_MAX_ROLL_COUNT"]=1                       ["ECS_LOG_DRIVER"]=1
+    ["ECS_LOG_OPTS"]=1                           ["ECS_ENABLE_AWSLOGS_EXECUTIONROLE_OVERRIDE"]=1    ["ECS_FSX_WINDOWS_FILE_SERVER_SUPPORTED"]=1
+    ["ECS_ENABLE_RUNTIME_STATS"]=1               ["ECS_EXCLUDE_IPV6_PORTBINDING"]=1                 ["ECS_WARM_POOLS_CHECK"]=1
+    ["ECS_SKIP_LOCALHOST_TRAFFIC_FILTER"]=1      ["ECS_ALLOW_OFFHOST_INTROSPECTION_ACCESS"]=1       ["ECS_OFFHOST_INTROSPECTION_INTERFACE_NAME"]=1
+    ["ECS_ENABLE_GPU_SUPPORT"]=1                 ["HTTP_PROXY"]=1                                   ["NO_PROXY"]=1
+    ["ECS_GMSA_SUPPORTED"]=1                     ["CREDENTIALS_FETCHER_HOST"]=1                     ["CREDENTIALS_FETCHER_SECRET_NAME_FOR_DOMAINLESS_GMSA"]=1
+    ["ECS_DYNAMIC_HOST_PORT_RANGE"]=1            ["ECS_TASK_PIDS_LIMIT"]=1                          ["ECS_EBSTA_SUPPORTED"]=1
+    ["ECS_SKIP_LOCALHOST_TRAFFIC_FILTER"]=1      ["ECS_ALLOW_OFFHOST_INTROSPECTION_ACCESS"]=1       ["ECS_OFFHOST_INTROSPECTION_INTERFACE_NAME"]=1
+    ["ECS_AGENT_LABELS"]=1                       ["ECS_AGENT_APPARMOR_PROFILE"]=1
+)
 
 # Common functions
 # ---------------------------------------------------------------------------------------
@@ -474,6 +511,18 @@ get_ecs_agent_logs() {
 
   cp -f -r /var/log/ecs/* "$dstdir"/
 
+  for file in "$dstdir"/*; do
+    if [[ -f "$file" ]]; then
+
+      for var in "${vars_to_redact[@]}"; do
+        if grep --quiet "${var}=" "$file"; then
+          sed -i "s/${var}=.*/${var}={REDACTED}\"/g" "$file"
+        fi
+      done
+
+    fi
+  done
+
   ok
 }
 
@@ -552,6 +601,28 @@ get_ecs_agent_info() {
     fi
   fi
 
+  if [ -e /etc/ecs/ecs.config ]; then
+    source_file="/etc/ecs/ecs.config"
+
+    line_is_safe=0
+    while IFS= read -r line; do
+      if [[ "$line" == *"="* ]]; then
+        var_name="${line%%=*}"
+        if [[ -v ecs_config_allowlist["$var_name"] ]]; then
+          line_is_safe=1
+        else
+          line_is_safe=0
+          echo "$var_name={REDACTED}" >> "$info_system"/ecs-agent/ecs.config
+        fi
+      fi
+
+      if [[ $line_is_safe -eq 1 ]]; then 
+        echo "$line" >> "$info_system"/ecs-agent/ecs.config
+      fi
+    done < "$source_file"
+  fi
+  ok
+
   try "collect Amazon ECS Container Agent engine data"
 
   if pgrep agent > /dev/null ; then
@@ -581,11 +652,6 @@ get_docker_containers_info() {
 
   if pgrep dockerd > /dev/null ; then
     for i in $(docker ps -a -q); do
-      container_name=$(docker inspect --format '{{ index . "Name" }}' "$i")
-      if [ "$container_name" != "/ecs-agent" ]; then
-        continue
-      fi
-
       timeout 10 docker inspect "$i" > "$info_system"/docker/container-"$i".txt 2>&1
       if [ $? -eq 124 ]; then
         touch "$info_system"/docker/container-inspect-timed-out.txt
@@ -593,9 +659,10 @@ get_docker_containers_info() {
         return 1
       fi
 
-      if grep --quiet "ECS_ENGINE_AUTH_DATA" "$info_system"/docker/container-"$i".txt; then
-        sed -i 's/ECS_ENGINE_AUTH_DATA=.*/ECS_ENGINE_AUTH_DATA=/g' "$info_system"/docker/container-"$i".txt
-      fi
+      env_vars=$(docker inspect --format='{{range $element := .Config.Env}}{{println $element}}{{end}}' "$i" | while IFS='=' read -r name value; do echo "$name"; done)
+      for env_var in $env_vars; do
+        sed -i "s/${env_var}=.*/${env_var}={REDACTED}\"/g" "$info_system"/docker/container-"$i".txt
+      done
     done
   else
     warning "the Docker daemon is not running." | tee "$info_system"/docker/docker-not-running.txt
