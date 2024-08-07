@@ -32,6 +32,10 @@ i-ffffffffffffffffff
 
 Download the tarball using your favourite Secure Copy tool.
 
+### Important
+
+We recommend that you edit the logs and remove all sensitive data from the files. You can search for known data, and also search for environment variables such as AWS_ACCESS_KEY_ID , AWS_SECRET_ACCESS_KEY , and AWS_SESSION_TOKEN in the file.
+
 ## Example output
 The project can be used in normal or enable-debug mode. Enable debug is only available for Systemd init systems and Amazon Linux.
 
