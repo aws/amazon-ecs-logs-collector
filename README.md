@@ -9,6 +9,7 @@ The following functions are supported:
 * Collect Docker logs
 * Collect Amazon ECS agent Logs
 * Enable debug mode for Docker and the Amazon ECS agent (only available for Systemd init systems and Amazon Linux)
+* Disable debug mode for Docker and the Amazon ECS agent (only available for Systemd init systems and Amazon Linux)
 * Create a tar zip file in the same folder as the script
 
 ## Usage
@@ -33,11 +34,11 @@ i-ffffffffffffffffff
 Download the tarball using your favourite Secure Copy tool.
 
 ## Example output
-The project can be used in normal or enable-debug mode. Enable debug is only available for Systemd init systems and Amazon Linux.
+The project can be used in normal, enable-debug or disable-debug mode. Enable & Disable debug is only available for Systemd init systems and Amazon Linux.
 
 ```
 # bash ecs-logs-collector.sh --help
-USAGE: ./ecs-logs-collector.sh [--mode=[brief|enable-debug]]
+USAGE: ./ecs-logs-collector.sh [--mode=[brief|enable-debug|disable-debug]]
        ./ecs-logs-collector.sh --help
 
 OPTIONS:
@@ -51,6 +52,8 @@ MODES:
      enable-debug  Enables debug mode for the Docker daemon and the Amazon
                    ECS Container Agent. Only supported on Systemd init systems
                    and Amazon Linux.
+     disable-debug Disables debug mode for the Docker daemon and the Amazon
+                   ECS Container Agent. reverse of enable-debug option.
 ```
 
 ### Example output in normal mode
@@ -102,6 +105,20 @@ Trying to enable debug mode for the Docker daemon ... ok
 Trying to restart Docker daemon to enable debug mode ... ok
 Trying to enable debug mode for the Amazon ECS Container Agent ... ok
 Trying to restart the Amazon ECS Container Agent to enable debug mode ... ok
+```
+
+### Example output in disable-debug mode
+The following output shows this project disabling debug mode for the Docker daemon and the Amazon ECS Container Agent. This mode only works on Amazon Linux OS and Systemd init systems such as RHEL 7 and Ubuntu 16.04. Note that disable-debug mode restarts Docker and the Amazon ECS agent.
+
+```
+# bash ecs-logs-collector.sh --mode=disable-debug
+Trying to check if the script is running as root ... ok
+Trying to collect system information ... ok
+Trying to disable debug mode for the Docker daemon ... ok
+Trying to restart Docker daemon to enable debug mode ... ok
+Trying to disable debug mode for the Amazon ECS Container Agent ... ok
+Trying to restart the Amazon ECS Container Agent to disable debug mode ... ok
+Trying to restart the Amazon ECS Container Agent to disable debug mode ... ok
 ```
 
 ## Contributing
