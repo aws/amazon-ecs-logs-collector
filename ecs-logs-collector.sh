@@ -100,7 +100,7 @@ ecs_config_allowlist=(
 # ---------------------------------------------------------------------------------------
 
 help() {
-  echo "USAGE: ${progname} [--mode=[brief|enable-debug]]"
+  echo "USAGE: ${progname} [--mode=[brief|enable-debug|disable-debug]]"
   echo "       ${progname} --help"
   echo ""
   echo "OPTIONS:"
@@ -114,6 +114,8 @@ help() {
   echo "     enable-debug  Enables debug mode for the Docker daemon and the Amazon"
   echo "                   ECS Container Agent. Only supported on Systemd init systems"
   echo "                   and Amazon Linux."
+  echo "     disable-debug Disables debug mode for the Docker daemon and the Amazon"
+  echo "                   ECS Container Agent. reverse of enable-debug option."
 }
 
 parse_options() {
@@ -228,6 +230,13 @@ enable_debug() {
   get_init_type
   enable_docker_debug
   enable_ecs_agent_debug
+}
+
+disable_debug() {
+  is_root
+  get_init_type
+  disable_docker_debug
+  disable_ecs_agent_debug
 }
 
 # Routines
@@ -856,6 +865,80 @@ enable_ecs_agent_debug() {
   fi
 }
 
+disable_docker_debug() {
+  try "disable debug mode for the Docker daemon"
+
+  if [ -e /etc/sysconfig/docker ] && ! grep -q "^\\s*OPTIONS=\"-D" /etc/sysconfig/docker; then
+    info "Debug mode is already disabled."
+  else
+
+    if [ -e /etc/sysconfig/docker ]; then
+      case "${init_type}" in
+        systemd)
+          # sed -i 's/^OPTIONS="\(.*\)/OPTIONS="-D \1/g' /etc/sysconfig/docker
+          sed -i 's/\-D//g' /etc/sysconfig/docker
+          ok
+
+          try "restart Docker daemon to enable debug mode"
+          systemctl restart docker.service
+          ok
+          ;;
+        *)
+          # echo "OPTIONS=\"-D \$OPTIONS\"" >> /etc/sysconfig/docker
+          sed -i 's/\-D//g' /etc/sysconfig/docker
+
+          try "restart Docker daemon to enable debug mode"
+          service docker restart
+          ok
+
+        esac
+
+    else
+      warning "the current operating system is not supported."
+    fi
+  fi
+}
+
+disable_ecs_agent_debug() {
+  try "disable debug mode for the Amazon ECS Container Agent"
+
+  if [ -e /etc/ecs/ecs.config ] && ! grep -q "^\\s*ECS_LOGLEVEL=debug" /etc/ecs/ecs.config; then
+    info "Debug mode is already disabled."
+  
+  else
+    case "${init_type}" in
+    systemd)
+      if [ ! -d /etc/ecs ]; then
+        mkdir /etc/ecs
+      fi
+
+      sed -i '/^\s*ECS_LOGLEVEL=debug/d' /etc/ecs/ecs.config
+      ok
+
+      try "restart the Amazon ECS Container Agent to disable debug mode"
+      systemctl restart ecs
+      ok
+      ;;
+    *)
+      if rpm -q --quiet ecs-init; then
+        if [ ! -d /etc/ecs ]; then
+          mkdir /etc/ecs
+        fi
+
+        sed -i '/^\s*ECS_LOGLEVEL=debug/d' /etc/ecs/ecs.config
+        ok
+
+        try "restart the Amazon ECS Container Agent to disable debug mode"
+        stop ecs; start ecs
+        ok
+      else
+        warning "the current operating system is not supported."
+      fi
+      ;;
+    esac
+  fi
+}
+
 # nvidia-smi is a tool available on GPU based AMIs provides detailed
 # information about the GPU present on the VM.
 get_gpu_info() {
@@ -890,6 +973,9 @@ case "${mode}" in
     ;;
   enable-debug)
     enable_debug
+    ;;
+  disable-debug)
+    disable_debug
     ;;
   *)
     help && exit 1
