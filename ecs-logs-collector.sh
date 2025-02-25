@@ -608,7 +608,7 @@ get_ecs_agent_info() {
     while IFS= read -r line; do
       if [[ "$line" == *"="* ]]; then
         var_name="${line%%=*}"
-        if [[ -v ecs_config_allowlist["$var_name"] ]]; then
+        if [[ -n "${ecs_config_allowlist[$var_name]+x}" ]]; then
           line_is_safe=1
         else
           line_is_safe=0
