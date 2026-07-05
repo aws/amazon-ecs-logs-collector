@@ -866,6 +866,7 @@ get_gpu_info() {
     nvidia-smi -L > "$info_system"/gpu/gpu-list.txt
     nvidia-smi -q > "$info_system"/gpu/gpu-info.txt
     sudo nvidia-bug-report.sh
+    zcat nvidia-bug-report.log.gz > "$info_system"/gpu/gpu-bug-report.txt
   fi
 
   # get open kernel module version
