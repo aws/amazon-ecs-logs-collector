@@ -870,7 +870,7 @@ get_gpu_info() {
       cd "$info_system"/gpu
       sudo nvidia-bug-report.sh
       if command -v zcat &>/dev/null && [ -f nvidia-bug-report.log.gz ]; then
-        zcat nvidia-bug-report.log.gz > "$info_system"/gpu/gpu-bug-report.txt
+        zcat nvidia-bug-report.log.gz > gpu-bug-report.txt
       fi
     )
   fi
