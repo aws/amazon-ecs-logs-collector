@@ -8,6 +8,7 @@ The following functions are supported:
 * Collect Operating System settings
 * Collect Docker logs
 * Collect Amazon ECS agent Logs
+* Collect GPU information on NVIDIA GPU-based instances
 * Enable debug mode for Docker and the Amazon ECS agent (only available for Systemd init systems and Amazon Linux)
 * Create a tar zip file in the same folder as the script
 
@@ -35,6 +36,18 @@ Download the tarball using your favourite Secure Copy tool.
 ### Important
 
 We recommend that you edit the logs and remove all sensitive data from the files. You can search for known data, and also search for environment variables such as AWS_ACCESS_KEY_ID , AWS_SECRET_ACCESS_KEY , and AWS_SESSION_TOKEN in the file.
+
+### GPU information
+
+On instances with an NVIDIA GPU (detected by the presence of `nvidia-smi`), the script collects GPU details into the `gpu` directory. Each command runs with a timeout (1 minute for `nvidia-smi`, 10 minutes for `nvidia-bug-report.sh`) so a bad GPU or driver cannot hang the collection; if a command exceeds its timeout, the script logs a message and continues.
+
+If you do not observe one of the following files in the `gpu` directory (or it is empty), that command likely timed out or failed, and you should run it manually to observe the output:
+
+* `gpu-list.txt` — run `nvidia-smi -L`
+* `gpu-info.txt` — run `nvidia-smi -q`
+* `gpu-bug-report.txt` — run `nvidia-bug-report.sh` (it generates `nvidia-bug-report.log.gz`, which is unzipped into this file)
+
+NVIDIA recommends allowing `nvidia-bug-report.sh` up to an hour to complete (see [Working with XID Errors](https://docs.nvidia.com/deploy/xid-errors/working-with-xid-errors.html)), which exceeds the 10 minute timeout here. If `nvidia-bug-report.sh` still does not complete within an hour, consider running: `sudo nvidia-bug-report.sh --safe-mode --extra-system-data` instead.
 
 ## Example output
 The project can be used in normal or enable-debug mode. Enable debug is only available for Systemd init systems and Amazon Linux.

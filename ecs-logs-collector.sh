@@ -863,12 +863,18 @@ get_gpu_info() {
   mkdir -p "$info_system"/gpu
 
   if command -v nvidia-smi &>/dev/null; then
-    nvidia-smi -L > "$info_system"/gpu/gpu-list.txt
-    nvidia-smi -q > "$info_system"/gpu/gpu-info.txt
+    if ! timeout 60 nvidia-smi -L > "$info_system"/gpu/gpu-list.txt; then
+      echo "nvidia-smi -L was unable to generate the GPU list within 1 minute. Consider running 'nvidia-smi -L' manually, optionally redirecting the output to a file to log it."
+    fi
+    if ! timeout 60 nvidia-smi -q > "$info_system"/gpu/gpu-info.txt; then
+      echo "nvidia-smi -q was unable to generate the GPU information within 1 minute. Consider running 'nvidia-smi -q' manually, optionally redirecting the output to a file to log it."
+    fi
 
     (
       cd "$info_system"/gpu
-      nvidia-bug-report.sh --safe-mode --extra-system-data
+      if ! timeout 10m nvidia-bug-report.sh; then
+        echo "nvidia-bug-report.sh did not complete within 10 minutes. Consider running it manually, for example: 'sudo nvidia-bug-report.sh --safe-mode --extra-system-data'. For guidance, see: https://docs.nvidia.com/deploy/xid-errors/working-with-xid-errors.html"
+      fi
       if command -v zcat &>/dev/null && [ -f nvidia-bug-report.log.gz ]; then
         zcat nvidia-bug-report.log.gz > gpu-bug-report.txt && rm nvidia-bug-report.log.gz
       fi
