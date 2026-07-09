@@ -221,6 +221,7 @@ collect_brief() {
   get_systemd_slice_info
   get_veth_info
   get_gpu_info
+  get_ssm_logs
 }
 
 enable_debug() {
@@ -543,6 +544,38 @@ get_pkglist() {
       ;;
   esac
 
+  ok
+}
+
+get_ssm_logs() {
+  try "collect Amazon SSM Agent logs"
+
+  dstdir="${info_system}/ssm_agent_logs"
+  mkdir -p "$dstdir"
+
+  if command -v journalctl >/dev/null; then
+    systemctl status amazon-ssm-agent >/dev/null 2>&1
+    if [ $? -eq 0 ]; then
+      journalctl -u amazon-ssm-agent > "$dstdir"/journalctl.log
+    elif command -v snap >/dev/null; then
+      systemctl status snap.amazon-ssm-agent.amazon-ssm-agent.service >/dev/null 2>&1
+      if [ $? -eq 0 ]; then
+        snap logs amazon-ssm-agent > "$dstdir"/snap-services.log
+      else
+        warning "Amazon SSM Agent is not running."
+      fi
+    else
+      warning "Amazon SSM Agent is not running."
+    fi
+  fi
+
+
+  if [ -d /var/log/amazon/ssm ]; then
+    cp -f -r /var/log/amazon/ssm/* "$dstdir"/
+  else
+    warning "SSM log directory does not exist."
+  fi
+  
   ok
 }
 
